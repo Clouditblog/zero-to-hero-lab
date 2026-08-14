@@ -1,0 +1,55 @@
+{
+  "id": "vcsa-machine-cert-expired",
+  "name": "VCSA Machine SSL Certificate Expired",
+  "description": "The vCenter Server Appliance machine SSL certificate has expired. Users see browser certificate errors when accessing vSphere Client, some API-based integrations have stopped working, and ESXi hosts may report certificate warnings when checking in with vCenter.",
+  "difficulty": "easy",
+  "examObjectives": [
+    "2V0-18.25"
+  ],
+  "topics": [
+    "vcenter",
+    "vcsa",
+    "certificates",
+    "vmca",
+    "ssl",
+    "vSphere-client"
+  ],
+  "customerScenario": "Users started getting browser certificate warnings when they open vSphere Client this morning. The warning says the site's certificate has expired. They can still click through and use vSphere Client, but some automation tools that use the vCenter API are refusing to connect. Our monitoring system also stopped collecting vCenter metrics overnight. The VCSA has been running for just over two years.",
+  "customerFollowUp": "The certificate was issued by the VMware Certificate Authority built into VCSA, so it's a self-signed VMCA certificate. We never set up external certificates. I think the default VMCA certificate lifetime is two years — so it just ran out. We don't have a process for certificate renewal because it's the first time we've hit this. We need to renew it without taking vCenter down for a long time if possible.",
+  "snapshotName": "",
+  "verifyScript": "verify-vcsa-machine-cert-expired.ps1",
+  "fixSteps": [
+    "Confirm the certificate has expired: open a browser, navigate to https://<vcenter-fqdn>, and inspect the certificate — check the 'Valid to' date",
+    "Log in to the VCSA VAMI (management interface) at https://<vcenter-fqdn>:5480 as the root user",
+    "Navigate to Administration > Certificate Management",
+    "Under Machine SSL Certificate, click Renew — this generates a new certificate signed by the built-in VMCA",
+    "Alternatively, SSH to the VCSA and run the certificate manager: /usr/lib/vmware-vmca/bin/certificate-manager",
+    "In certificate-manager, choose option 4 (Generate VMCA Root Certificate and replace all certificates) or option 3 (Replace Machine SSL certificate with VMCA certificate) depending on whether the VMCA root itself also needs renewal",
+    "Follow the prompts — enter the environment details when asked (FQDN, IP, organisation name)",
+    "The vCenter services will restart automatically after certificate replacement — this takes 5-10 minutes",
+    "After restart, open a new browser tab to https://<vcenter-fqdn> and verify the new certificate is valid",
+    "Test that API integrations and monitoring tools can now connect without certificate errors"
+  ],
+  "hints": [
+    "A browser certificate warning on vSphere Client combined with API integrations failing is a classic sign of an expired or invalid VCSA machine SSL certificate. VMCA-issued machine SSL certificates have a default two-year lifetime. Since this VCSA has been running for just over two years, the timing matches. Where in the VCSA management interface or CLI can you renew the machine SSL certificate?",
+    "The VCSA has two management paths for certificates: the VAMI (https://vcenter:5480) under Administration > Certificate Management, and the certificate-manager CLI tool reachable via SSH. Both can renew the machine SSL certificate. The VAMI path is simpler — look for the Machine SSL Certificate section and a Renew option.",
+    "Renewing a VMCA-signed machine SSL certificate via the VAMI (Administration > Certificate Management > Machine SSL Certificate > Renew) is the straightforward path for a VMCA-issued certificate. The VMCA is still valid — only the leaf machine SSL certificate has expired. This generates a new two-year certificate and restarts the necessary vCenter services.",
+    "After certificate renewal, vCenter services restart automatically — expect 5-10 minutes of downtime. Connected ESXi hosts and monitoring tools will reconnect automatically after services come back. You may need to clear the browser cache or accept the new certificate fingerprint in monitoring tools that pin certificates.",
+    "Fix: Log in to VAMI at https://vcenter-fqdn:5480 > Administration > Certificate Management > Machine SSL Certificate > Renew. Confirm the renewal and wait 5-10 minutes for services to restart. Verify by opening vSphere Client — the browser should no longer show a certificate error. Re-test API integrations after the renewal."
+  ],
+  "labRequirements": [
+    "vcenter",
+    "nested-cluster-min-1"
+  ],
+  "certRelevance": [
+    "VCP-VVF-Support"
+  ],
+  "learningObjectives": [
+    "Recognise an expired VCSA machine SSL certificate from browser warnings and API integration failures",
+    "Understand the VMCA default certificate lifetime and why renewal is needed after approximately two years",
+    "Renew a VMCA-signed machine SSL certificate via the VCSA VAMI or certificate-manager CLI",
+    "Verify the renewal and understand that vCenter services restart automatically as part of the process"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}

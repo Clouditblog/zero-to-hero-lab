@@ -1,0 +1,57 @@
+{
+  "id": "tkg-content-library-unreachable",
+  "name": "TKG Deployment Blocked — Supervisor Content Library Sync Failing",
+  "description": "A TKG workload cluster cannot be deployed because the vSphere Supervisor's subscribed content library cannot sync its OVA images. The subscription URL or SSL thumbprint is outdated after the content library server was migrated to a new host.",
+  "difficulty": "easy",
+  "examObjectives": [
+    "3V0-24.25"
+  ],
+  "topics": [
+    "tkg",
+    "supervisor",
+    "content-library",
+    "kubernetes",
+    "vks",
+    "ova-images"
+  ],
+  "customerScenario": "We're trying to deploy a new TKG workload cluster on a Supervisor that has been running fine. The deployment fails immediately with a message about being unable to retrieve the node image. Other existing TKG clusters are still running — this only affects new deployments. Our infrastructure team migrated the content library server to a new VM last weekend as part of a hardware refresh.",
+  "customerFollowUp": "The content library server migration involved standing up a new VM with a new IP address and certificate, then restoring the library content from backup. The team says they updated the DNS record to point to the new server but I'm not sure if the content library subscription settings in vCenter were also updated. The old server is decommissioned now.",
+  "snapshotName": "",
+  "verifyScript": "verify-tkg-content-library-unreachable.ps1",
+  "fixSteps": [
+    "In vSphere Client, navigate to Content Libraries in the main menu",
+    "Open the subscribed content library used by the Supervisor for TKG images — it will be named something like 'TKG-Images' or reference 'Tanzu'",
+    "Check the library's sync status — it will likely show a sync error or 'Last sync failed'",
+    "Click Edit > Subscription Settings and review the Subscription URL",
+    "Verify the URL matches the new content library server address — it may still point to the old server IP",
+    "Update the Subscription URL to the new server address if it is wrong",
+    "Also check the SSL Thumbprint or certificate validation setting — if the new server has a different certificate, the thumbprint must be updated or certificate verification set appropriately",
+    "Save the subscription settings",
+    "Click Sync to trigger an immediate synchronisation",
+    "Wait for the sync to complete successfully — the library will download or verify the OVA images",
+    "Retry the TKG workload cluster deployment — it should now be able to find the node images"
+  ],
+  "hints": [
+    "TKG deployments rely on node OVA images stored in a subscribed content library attached to the Supervisor. If the content library cannot sync, the Supervisor has no images to use for new cluster nodes. A 'cannot retrieve image' failure on a previously-working Supervisor almost always points to the content library rather than TKG configuration. Where in vSphere Client do you manage content libraries?",
+    "In vSphere Client, go to Content Libraries and find the subscribed library used by the Supervisor. Check its sync status. A failed sync will show an error message that points to whether the issue is a connectivity problem (wrong URL) or a certificate problem (thumbprint mismatch). The content library was migrated to a new server — both the URL and SSL thumbprint may need updating.",
+    "The subscription URL in the content library settings still points to the old server address that was decommissioned. Even though DNS was updated, the content library subscription stores the URL directly — it won't automatically follow a DNS change. Edit the library's subscription settings and update the URL to the new server.",
+    "After updating the URL, also verify the SSL thumbprint. If the new server has a different self-signed certificate (which is typical after a fresh VM deployment), the old thumbprint will cause certificate validation to fail even with the correct URL. You can retrieve the new thumbprint by browsing to the new server URL in a browser and inspecting the certificate details.",
+    "Fix: Content Libraries > open the Supervisor's subscribed library > Edit > Subscription Settings > update the Subscription URL to the new server address > update the SSL thumbprint if needed > Save > Sync. Once the sync completes successfully, retry the TKG workload cluster deployment."
+  ],
+  "labRequirements": [
+    "supervisor-enabled",
+    "content-library",
+    "nested-cluster-min-3"
+  ],
+  "certRelevance": [
+    "VCAP-VCF-VKS"
+  ],
+  "learningObjectives": [
+    "Identify that TKG node image availability depends on a successfully synced Supervisor content library",
+    "Diagnose a content library sync failure caused by an outdated subscription URL after a server migration",
+    "Update content library subscription settings including URL and SSL thumbprint",
+    "Verify the fix by triggering a manual sync before retrying a TKG cluster deployment"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}

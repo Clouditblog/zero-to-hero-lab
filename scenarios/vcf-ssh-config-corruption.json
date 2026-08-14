@@ -1,0 +1,52 @@
+{
+  "id": "vcf-ssh-config-corruption",
+  "name": "VCF Bring-up: SSH Key Validation Failing for All Hosts",
+  "description": "VCF bring-up wizard reports 'Failed to get SSH Key For ESX Host' for all four management hosts. ESXi hosts are fine \u2014 root cause is a malformed line in SDDC Manager's own SSH client config that broke its outbound SSH entirely.",
+  "difficulty": "hard",
+  "examObjectives": [
+    "3V0-25.25 Section 1",
+    "3V0-25.25 Section 4"
+  ],
+  "topics": [
+    "VCF",
+    "Bring-up",
+    "SSH",
+    "SDDC Manager"
+  ],
+  "customerScenario": "We've been trying to run the VCF bring-up wizard for two days and it keeps failing. It says it can't get SSH keys from any of our ESXi hosts. We've checked the hosts and SSH is working fine \u2014 we can connect to them ourselves. The bring-up just won't accept them. We're stuck and have a go-live date next week.",
+  "customerFollowUp": "Someone on the team did try to fix an SSH issue on the SDDC Manager appliance earlier this week. They said they added a line to the SSH config to allow password authentication. Could that have caused something?",
+  "snapshotName": "",
+  "verifyScript": "verify-vcf-ssh-config.ps1",
+  "fixSteps": [
+    "Confirm SSH works to ESXi hosts from another machine",
+    "SSH into SDDC Manager",
+    "Check /etc/ssh/ssh_config for malformed lines",
+    "Remove malformed line: sed -i '/@PasswordAuthentication yes@/d' /etc/ssh/ssh_config",
+    "Re-run bring-up validation"
+  ],
+  "hints": [
+    "The bring-up wizard is reporting all four hosts as failing SSH key validation simultaneously. What does it mean when every host fails the same check at the same time? Is it more likely that all four hosts are broken, or that the thing connecting to them is broken?",
+    "Test SSH connectivity to the ESXi hosts directly from another machine \u2014 not from SDDC Manager. If SSH works from elsewhere but not from SDDC Manager, the problem is on SDDC Manager's end, not the hosts.",
+    "Check SDDC Manager's SSH configuration. There are two SSH config files that are easy to confuse: /etc/ssh/sshd_config controls the SSH server (incoming connections to SDDC Manager) and /etc/ssh/ssh_config controls the SSH client (outgoing connections from SDDC Manager). Which one was modified?",
+    "Check /etc/ssh/ssh_config on SDDC Manager \u2014 the client config file. Look for any malformed or unexpected lines. A line that was intended for sshd_config but was written to ssh_config instead could break all outbound SSH from SDDC Manager.",
+    "Remove the malformed line from /etc/ssh/ssh_config. The line '@PasswordAuthentication yes@' with incorrect syntax was written to the client config by mistake. Use sed to remove it: sed -i '/@PasswordAuthentication yes@/d' /etc/ssh/ssh_config. Restart the bring-up validation \u2014 all four hosts should now pass."
+  ],
+  "labRequirements": [
+    "nested-cluster-min-4",
+    "vcenter",
+    "sddc-manager"
+  ],
+  "certRelevance": [
+    "VCP-VCF-Admin",
+    "VCP-VCF-Architect",
+    "VCP-VCF-Support"
+  ],
+  "learningObjectives": [
+    "Distinguish between /etc/ssh/sshd_config (server) and /etc/ssh/ssh_config (client) and their separate effects",
+    "Reason from a all-hosts-failing pattern to a problem on the initiating component rather than the targets",
+    "Inspect the SDDC Manager SSH client config for malformed directives introduced by manual edits",
+    "Remove the malformed line and restore bring-up SSH key validation for all hosts"
+  ],
+  "author": "Jon \u2014 CloudITBlog.com",
+  "created": "2026-06-26"
+}

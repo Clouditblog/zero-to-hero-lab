@@ -1,0 +1,55 @@
+{
+  "id": "aria-automation-blueprint-compute-constraint",
+  "name": "Aria Automation: Blueprint Deployment Fails — Compute Constraint Tag Not Found",
+  "description": "An Aria Automation blueprint uses a tag-based compute constraint to target a specific vSphere cluster, but the tag was removed from the cluster during a vCenter reorganisation. Every deployment request fails at the scheduling phase with 'no matching compute resource found'.",
+  "difficulty": "medium",
+  "examObjectives": [
+    "3V0-21.25"
+  ],
+  "topics": [
+    "aria-automation",
+    "blueprints",
+    "compute-constraints",
+    "tags",
+    "cloud-zones",
+    "vCenter"
+  ],
+  "customerScenario": "Deployments from our standard web-tier blueprint have been failing for two days. The error is 'Unable to find a matching resource for the constraints defined in the blueprint — no compute resources satisfy the required criteria.' The blueprint itself hasn't been touched. Other blueprints without placement constraints still deploy fine. Our vCenter team did a cluster reorganisation earlier this week.",
+  "customerFollowUp": "I looked at the blueprint YAML and there is a constraints section that mentions a tag. The vCenter admin confirmed they reorganised the cluster hierarchy and re-applied tags to the new structure. They thought they got them all, but I think one tag might be missing. The blueprint has been in production for over a year so we don't want to change the YAML if we can avoid it.",
+  "snapshotName": "",
+  "verifyScript": "verify-aria-automation-blueprint-compute-constraint.ps1",
+  "fixSteps": [
+    "Open the failing blueprint in Aria Automation Service Broker or Designer",
+    "Examine the YAML for any 'constraints' property on the Cloud.vSphere.Machine or compute resource block",
+    "Note the tag constraint value — for example 'Capability Tag: zone:prod' or a tag expression like 'platform:vcf'",
+    "In vSphere Client, navigate to the cluster or resource pool that should be the deployment target",
+    "Click the Tags & Custom Attributes tab and check which tags are currently applied",
+    "Confirm that the tag referenced in the blueprint constraint is missing from the cluster",
+    "In vCenter, assign the correct tag to the cluster (Tags & Custom Attributes > Assign Tag)",
+    "Return to Aria Automation and trigger a manual data collection on the cloud account so the updated tags are reflected",
+    "Re-submit the blueprint deployment — it should now find the matching compute resource and proceed"
+  ],
+  "hints": [
+    "The error 'no matching compute resource found' means Aria Automation's placement engine evaluated all available compute resources in the cloud zone but none satisfied all the constraints in the blueprint. The blueprint uses tag-based constraints. Where would you look to understand what tags the blueprint requires, and where would you verify that those tags exist on the target compute resource?",
+    "Open the blueprint YAML in Aria Automation Designer. Look for a 'constraints' block under the vSphere machine or compute resource definition. It will reference a tag — something like 'Capability Tag: zone:prod' or a custom expression. That tag must be applied to a cluster or resource pool within the cloud zone for Aria Automation to place VMs there.",
+    "The vCenter cluster reorganisation removed or failed to re-apply a tag that the blueprint depends on for placement. Aria Automation refreshes tag data from vCenter during data collection — if a tag is removed in vCenter, the next collection cycle makes it unavailable as a placement target. The blueprint YAML does not need to change; the tag just needs to exist on the correct cluster.",
+    "In vSphere Client, find the cluster that should be the deployment target. Go to its Tags & Custom Attributes tab and check which tags are applied. Compare to the constraint tag in the blueprint YAML. If the tag is missing, assign it in vCenter. Then run a manual data collection in Aria Automation so the updated tag data is picked up before you retry.",
+    "Fix: In vCenter, select the target cluster > Tags & Custom Attributes > Assign Tag > select the tag referenced in the blueprint constraint. Then in Aria Automation, open the cloud account > Data Collection > collect now. Re-deploy from the blueprint — placement will succeed once Aria Automation sees the matching tag on the cluster."
+  ],
+  "labRequirements": [
+    "aria-automation",
+    "vcenter",
+    "nested-cluster-min-1"
+  ],
+  "certRelevance": [
+    "VCAP-VCF-Automation"
+  ],
+  "learningObjectives": [
+    "Interpret tag-based compute constraints in Aria Automation blueprint YAML",
+    "Diagnose placement failures by tracing the constraint requirement back to vCenter tag configuration",
+    "Apply a vSphere tag to a cluster to satisfy an Aria Automation compute constraint",
+    "Trigger a data collection to refresh Aria Automation's view of vCenter tags before re-deploying"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}

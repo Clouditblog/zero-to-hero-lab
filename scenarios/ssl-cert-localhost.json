@@ -1,0 +1,50 @@
+{
+  "id": "ssl-cert-localhost",
+  "name": "SSL Certificate Shows localhost.localdomain",
+  "description": "vCenter was deployed before DNS was configured, so the VMCA issued certificates with localhost.localdomain as the CN, causing browser warnings and integration failures",
+  "difficulty": "hard",
+  "examObjectives": [
+    "VCP-DCV",
+    "VCAP-DCV"
+  ],
+  "topics": [
+    "certificate-management"
+  ],
+  "customerScenario": "Hi, this is Chris. We're getting SSL certificate errors on vCenter \u2014 every browser shows 'Your connection is not private' and the certificate details show 'localhost.localdomain' as the subject. We're also trying to set up a third-party integration that validates SSL certificates and it rejects ours outright. We set up vCenter about three weeks ago.",
+  "customerFollowUp": "Looking back at the deployment notes \u2014 we deployed the vCenter OVA before our DNS was fully set up. We used an IP address in the FQDN field during deployment because we didn't have a proper DNS name yet. We added DNS records for vCenter afterwards but never went back to fix the certificate.",
+  "snapshotName": "",
+  "verifyScript": "verify-ssl-cert-localhost.ps1",
+  "fixSteps": [
+    "Confirm the problem: in a browser, view the vCenter certificate \u2014 CN and SAN will show localhost.localdomain or an IP",
+    "Verify DNS is now correctly configured: nslookup vcenter.lab.local should return the correct IP",
+    "SSH to the VCSA and run the certificate-manager: /usr/lib/vmware-vmca/bin/certificate-manager",
+    "Select Option 3: Replace Machine SSL Certificate with VMCA Certificate",
+    "When prompted, enter the correct FQDN (e.g., vcenter.lab.local), IP address, and organisation details",
+    "The tool will regenerate the Machine SSL certificate with the correct FQDN as CN and SAN",
+    "All vCenter services will restart automatically \u2014 this takes approximately 5-10 minutes",
+    "Verify: reopen vCenter in browser and inspect the certificate \u2014 CN should now show the correct FQDN"
+  ],
+  "hints": [
+    "Certificate issues in VMware environments most commonly come from deployment-time configuration. The VMCA generates certificates at deploy time using whatever FQDN or hostname was entered. What FQDN did the customer say they entered during deployment?",
+    "The vCenter was deployed with an IP address or without a proper FQDN, so the VMCA issued certificates with localhost.localdomain or the IP as the Common Name. VMware provides a certificate-manager utility on the VCSA that can regenerate all certificates now that DNS is properly configured.",
+    "SSH to the VCSA and run: /usr/lib/vmware-vmca/bin/certificate-manager. This interactive tool has several options. Which option is responsible for regenerating the Machine SSL certificate using the VMCA as the issuing authority?",
+    "In certificate-manager, Option 3 (Replace Machine SSL Certificate with VMCA Certificate) is what you need. This regenerates the certificate that browsers and clients see. Run it and provide the correct FQDN and IP address when prompted \u2014 the VMCA will issue a new cert with the right subject.",
+    "Run /usr/lib/vmware-vmca/bin/certificate-manager on the VCSA > Option 3 > enter correct FQDN (e.g., vcenter.lab.local) and IP when prompted > confirm. Services will restart over 5-10 minutes. Afterwards check the browser certificate \u2014 SAN should include the correct FQDN and the warning should be gone (or resolvable by trusting the VMCA root)."
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin",
+    "VCAP-VCF-Storage"
+  ],
+  "learningObjectives": [
+    "Explain how VMCA generates certificates at deployment time using the FQDN provided",
+    "Identify a certificate CN/SAN mismatch that causes browser warnings and integration failures",
+    "Use the VCSA certificate-manager utility to replace the Machine SSL certificate with a correctly-named one",
+    "Verify certificate renewal by inspecting the updated SAN in a browser after vCenter services restart"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-26",
+  "labRequirements": [
+    "nested-cluster-min-1",
+    "domain-controller"
+  ]
+}

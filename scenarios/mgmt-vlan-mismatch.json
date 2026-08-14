@@ -1,0 +1,46 @@
+{
+  "id": "mgmt-vlan-mismatch",
+  "name": "Management VLAN Mismatch",
+  "description": "Nested ESXi hosts lose management connectivity after the management port group VLAN ID is changed",
+  "difficulty": "medium",
+  "examObjectives": [
+    "VCP-DCV",
+    "VCAP-DCV"
+  ],
+  "topics": [
+    "vsphere-networking"
+  ],
+  "customerScenario": "Hi, I'm Jamie from the lab team. All three ESXi hosts are showing as 'Not Responding' in vCenter. We can't ping the management IPs of any of them. Everything was working fine this morning and we haven't changed anything on the VMs themselves.",
+  "customerFollowUp": "One of the engineers did create a new port group for management yesterday because \u2014 and I'm quoting \u2014 'the old one was behaving oddly'. They may have also changed the VLAN ID on the existing port group at the same time.",
+  "snapshotName": "",
+  "verifyScript": "verify-mgmt-vlan-mismatch.ps1",
+  "fixSteps": [
+    "Access the ESXi host console directly (DCUI or IPMI) \u2014 do not rely on vCenter since hosts are Not Responding",
+    "Run from an ESXi shell: esxcli network vswitch standard portgroup list \u2014 note the VLAN ID on 'Management Network'",
+    "Compare to the physical switch trunk: what VLAN should management traffic be on?",
+    "Correct the VLAN ID via ESXi CLI: esxcli network vswitch standard portgroup set -p 'Management Network' -v <correct-vlan>",
+    "Or in vCenter (if accessible via another path): Networking > DVS > Port Groups > Management > Edit > VLAN",
+    "Verify the hosts reconnect to vCenter \u2014 should happen within 30 seconds of the VLAN fix"
+  ],
+  "hints": [
+    "All three hosts went Not Responding simultaneously after a port group was modified. The management network (vmk0) is how ESXi communicates with vCenter. If the VLAN tag on that port group is wrong, the hosts appear completely offline even though they are running.",
+    "VLAN mismatches on management port groups are one of the most common causes of mass host disconnection. Check the VLAN ID on the Management Network port group. Since vCenter is unreachable, you may need to access this from the ESXi console directly.",
+    "On an affected ESXi host, connect via the DCUI or direct console access. Run: esxcli network vswitch standard portgroup list \u2014 what VLAN ID is shown for the Management Network port group? What does the physical switch trunk expect?",
+    "The Management Network port group has an incorrect VLAN ID that was recently changed. The physical uplink is trunking management traffic on a different VLAN. You need to set the port group back to the original VLAN ID.",
+    "From ESXi CLI: esxcli network vswitch standard portgroup set -p 'Management Network' -v <original-vlan>  (use 0 for untagged). Apply this to each affected host. Hosts should reconnect to vCenter within about 30 seconds."
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin"
+  ],
+  "learningObjectives": [
+    "Explain how an incorrect VLAN ID on the management port group causes mass host disconnection",
+    "Access ESXi host configuration via the DCUI when vCenter is unavailable",
+    "Inspect and correct management port group VLAN settings using esxcli",
+    "Confirm host reconnection to vCenter after management VLAN is restored"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-26",
+  "labRequirements": [
+    "nested-cluster-min-2"
+  ]
+}

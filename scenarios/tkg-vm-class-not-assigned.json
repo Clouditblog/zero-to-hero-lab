@@ -1,0 +1,55 @@
+{
+  "id": "tkg-vm-class-not-assigned",
+  "name": "TKG Cluster Fails to Provision — VM Class Not Assigned to Namespace",
+  "description": "A TKG workload cluster deployment fails immediately because the required VM class for control plane and worker nodes has not been assigned to the vSphere namespace. The error references a VM class that is available in other namespaces but missing from this one.",
+  "difficulty": "medium",
+  "examObjectives": [
+    "3V0-24.25"
+  ],
+  "topics": [
+    "tkg",
+    "supervisor",
+    "kubernetes",
+    "namespaces",
+    "vm-classes",
+    "vks"
+  ],
+  "customerScenario": "We're deploying TKG clusters for a new development team in a dedicated vSphere namespace. The TKGCluster manifest we're using is identical to one that works in our staging namespace — same VM class references, same cluster configuration. But every time we apply it to the new namespace with kubectl we get an error: 'Failed to create cluster: VirtualMachineClass best-effort-large not found in namespace dev-team-ns'. The staging namespace works fine with the same manifest.",
+  "customerFollowUp": "The namespace was created last week following our standard runbook. The person who set it up said they got through all the steps but they were interrupted partway through and had to come back to finish it. They're not sure if they completed every tab in the namespace configuration. When I compare the two namespaces side by side in vCenter, they look mostly the same but I haven't looked at every tab.",
+  "snapshotName": "",
+  "verifyScript": "verify-tkg-vm-class-not-assigned.ps1",
+  "fixSteps": [
+    "In vSphere Client, navigate to Workload Management > Namespaces",
+    "Open the new namespace where the TKG cluster is failing (e.g., dev-team-ns)",
+    "Click the VM Classes tab",
+    "Note which VM classes are listed — the required class (e.g., best-effort-large) will be absent",
+    "Open a working namespace (e.g., staging) and check its VM Classes tab to see what classes are assigned there",
+    "Return to the failing namespace and click Add VM Class",
+    "Select the VM class referenced in the error (e.g., best-effort-large) and any other classes the team will need",
+    "Save the namespace configuration",
+    "Re-apply the TKGCluster manifest using kubectl — the cluster should now progress past the VM class validation",
+    "Monitor the cluster status in Workload Management > Tanzu Kubernetes Clusters until it reaches Running state"
+  ],
+  "hints": [
+    "The error 'VirtualMachineClass not found in namespace' is explicit — the namespace does not have the required VM class in its allowed list. TKG uses VM classes to define the CPU and memory configuration for control plane and worker nodes. VM classes must be explicitly assigned to each namespace before they can be used. Where in vSphere Client do you configure which VM classes are available in a namespace?",
+    "In vSphere Client, navigate to Workload Management > Namespaces and open the failing namespace. There is a VM Classes tab that controls which VM class configurations are available for TKG deployments in that namespace. Compare this tab between the failing namespace and the working staging namespace to spot the difference.",
+    "The VM Classes tab on the new namespace is missing the class referenced in the TKGCluster manifest. This is a common oversight when creating namespaces — each tab (Storage, VM Classes, Permissions) must be configured independently, and missing any one of them blocks specific operations. The VM class itself exists in the system; it just has not been added to this namespace.",
+    "Add the missing VM class via the namespace's VM Classes tab: click Add VM Class, find the class referenced in the error (e.g., best-effort-large), add it. You may also want to add any other classes the team's blueprints use (best-effort-small, best-effort-medium, guaranteed-small, etc.) so they don't hit the same issue for different workloads.",
+    "Fix: Workload Management > Namespaces > [failing namespace] > VM Classes tab > Add VM Class > select best-effort-large (and any others needed) > Save. Re-apply the TKGCluster manifest. The supervisor will now find the VM class and proceed with provisioning the control plane nodes."
+  ],
+  "labRequirements": [
+    "supervisor-enabled",
+    "nested-cluster-min-3"
+  ],
+  "certRelevance": [
+    "VCAP-VCF-VKS"
+  ],
+  "learningObjectives": [
+    "Understand that vSphere namespace VM classes, storage policies, and permissions are each configured independently",
+    "Identify a missing VM class assignment as the cause of a TKGCluster manifest failing with 'VM class not found'",
+    "Assign a VM class to a vSphere namespace via Workload Management > Namespaces",
+    "Compare namespace configuration between a working and failing namespace to identify configuration gaps"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}

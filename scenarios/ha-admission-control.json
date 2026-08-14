@@ -1,0 +1,47 @@
+{
+  "id": "ha-admission-control",
+  "name": "HA Not Protecting VMs \u2014 Admission Control Misconfigured",
+  "description": "vSphere HA is enabled but VMs are showing as unprotected. Admission control policy is too restrictive for the cluster size.",
+  "difficulty": "medium",
+  "examObjectives": [
+    "VCP-DCV Section 5",
+    "VCAP-DCV Section 3"
+  ],
+  "topics": [
+    "vSphere",
+    "HA",
+    "Cluster"
+  ],
+  "customerScenario": "We noticed in vCenter that some of our VMs are showing as not protected by HA. We thought HA was turned on. If a host fails those VMs won't restart anywhere. Can you look into it?",
+  "customerFollowUp": "We recently added more VMs to the cluster. We went from about 60 percent utilisation to around 85 percent. Could that be why?",
+  "snapshotName": "",
+  "verifyScript": "verify-ha-admission-control.ps1",
+  "fixSteps": [
+    "Review HA admission control policy",
+    "Check cluster utilisation vs reserved capacity",
+    "Adjust admission control percentage or add host capacity",
+    "Verify all VMs show HA protected"
+  ],
+  "hints": [
+    "Check the cluster's HA configuration in vCenter. Is HA enabled and what does the HA summary show for the cluster?",
+    "Look at the admission control policy. What percentage of cluster resources is being reserved for failover capacity?",
+    "Check current cluster resource utilisation against the admission control reservation. If actual usage exceeds what admission control allows after reserving failover capacity, VMs will show as unprotected.",
+    "The admission control policy is reserving capacity for one host failure but with 85 percent utilisation there isn't enough remaining capacity to meet that requirement. HA is marking VMs as unprotected because it couldn't guarantee restart capacity.",
+    "Either reduce the admission control percentage to match actual cluster capacity, add more hosts to the cluster, or reduce VM resource reservations. Then verify all VMs show as HA protected."
+  ],
+  "labRequirements": [
+    "nested-cluster-min-3",
+    "vcenter"
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin"
+  ],
+  "learningObjectives": [
+    "Understand how vSphere HA admission control reserves failover capacity",
+    "Identify why VMs become unprotected when cluster utilisation exceeds admission control limits",
+    "Adjust admission control policy to match real-world cluster utilisation",
+    "Verify HA protection status for all VMs after a configuration change"
+  ],
+  "author": "Jon \u2014 CloudITBlog.com",
+  "created": "2026-06-26"
+}

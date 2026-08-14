@@ -1,0 +1,51 @@
+{
+  "id": "vcf-ntp-drift",
+  "name": "VCF Bring-up: NTP Validation Failing",
+  "description": "VCF bring-up NTP validation fails because one component is pointing at a different NTP source than the rest, causing time drift that exceeds bring-up tolerance.",
+  "difficulty": "hard",
+  "examObjectives": [
+    "3V0-25.25 Section 1"
+  ],
+  "topics": [
+    "VCF",
+    "Bring-up",
+    "NTP",
+    "SDDC Manager"
+  ],
+  "customerScenario": "Our VCF bring-up is failing at the NTP validation step. It says time synchronisation is not within acceptable limits. We set up NTP on everything before we started \u2014 we don't understand why it's failing.",
+  "customerFollowUp": "We did set up NTP on all the hosts and on SDDC Manager. But now that you mention it, I'm not sure if we checked SDDC Manager itself or just assumed it was syncing.",
+  "snapshotName": "",
+  "verifyScript": "verify-vcf-ntp-drift.ps1",
+  "fixSteps": [
+    "Check NTP status on all components",
+    "Identify component with wrong NTP source",
+    "Fix /etc/ntp.conf on SDDC Manager",
+    "Restart ntpd",
+    "Verify sync with ntpdate",
+    "Re-run bring-up NTP validation"
+  ],
+  "hints": [
+    "NTP validation failing means at least one component's clock is drifting from the others beyond the bring-up tolerance. Which components does VCF check NTP on during bring-up?",
+    "Check NTP status on each component: the ESXi hosts, SDDC Manager, and the DNS/NTP server itself. Run ntpq -p or chronyc tracking on each to see current sync status and offset.",
+    "Compare the NTP source configured on each component. Are they all pointing at the same NTP server? Even a small difference in source can cause drift if one server is less accurate.",
+    "Check SDDC Manager specifically \u2014 it's easy to configure NTP on the ESXi hosts and forget that SDDC Manager is a separate appliance that needs its own NTP configuration. Run systemctl status ntpd on SDDC Manager.",
+    "SDDC Manager is pointing at a different NTP source or NTP is not running correctly on it. Fix the NTP configuration: edit /etc/ntp.conf on SDDC Manager, ensure it points at the same source as all other components, restart ntpd, and verify sync with ntpdate before re-running bring-up validation."
+  ],
+  "labRequirements": [
+    "nested-cluster-min-4",
+    "sddc-manager",
+    "domain-controller"
+  ],
+  "certRelevance": [
+    "VCP-VCF-Admin",
+    "VCP-VCF-Support"
+  ],
+  "learningObjectives": [
+    "Identify which VCF components are checked during bring-up NTP validation",
+    "Diagnose NTP drift by comparing ntpq or chronyc output across all management components",
+    "Correct NTP configuration on SDDC Manager by editing /etc/ntp.conf and restarting ntpd",
+    "Verify time synchronisation is within bring-up tolerance before re-running validation"
+  ],
+  "author": "Jon \u2014 CloudITBlog.com",
+  "created": "2026-06-26"
+}

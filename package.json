@@ -1,0 +1,30 @@
+{
+  "name": "zero-to-hero-lab",
+  "version": "1.36.0",
+  "description": "Zero to Hero Lab: a local wizard for designing a nested vSphere home lab. Generates a JSON spec, a PowerCLI deployment script, and a markdown design doc.",
+  "main": "server.js",
+  "bin": "server.js",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "start": "node server.js",
+    "build": "pkg . --targets node18-win-x64,node18-macos-arm64,node18-macos-x64,node18-linux-x64 --output dist/zero-to-hero-lab"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mermaid": "^11.15.0"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.15.0",
+    "pkg": "^5.8.1",
+    "playwright": "^1.61.1"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*"
+    ]
+  }
+}

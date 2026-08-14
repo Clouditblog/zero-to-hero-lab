@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zero to Hero Lab</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="ts-badge" class="ts-badge" hidden>Troubleshooting Mode</div>
+
+<div id="prereq-screen" class="prereq-screen">
+  <div class="prereq-panel">
+    <div class="prereq-hdr">
+      <h1 class="prereq-title">Before you start</h1>
+      <p class="prereq-sub">Quick Check &mdash; confirm these once, and the wizard remembers for next time.</p>
+    </div>
+
+    <div class="prereq-list">
+      <div class="prereq-col">
+        <label class="prereq-item">
+          <input type="checkbox" class="prereq-check" data-prereq-id="hardware">
+          <span class="prereq-item-body">
+            <span class="prereq-item-title">Physical host meets the minimum spec</span>
+            <span class="prereq-item-desc">
+              <strong>64&nbsp;GB RAM is the floor</strong> &mdash; how much more depends on what you want to build.
+              The wizard shows this same table live once you enter your RAM on the Hardware step:
+              <table class="prereq-ram-table">
+                <tr><td>64&nbsp;GB</td><td>vSphere basics &mdash; 1&ndash;2 hosts only</td></tr>
+                <tr><td>128&nbsp;GB</td><td>vSphere + vSAN &mdash; 3 hosts</td></tr>
+                <tr><td>192&nbsp;GB</td><td>vSphere + NSX &mdash; 3&ndash;4 hosts</td></tr>
+                <tr><td>256&nbsp;GB</td><td>vSphere + NSX + basic VCF</td></tr>
+                <tr><td>384&nbsp;GB+</td><td>Full VCF recommended</td></tr>
+                <tr><td>512&nbsp;GB+</td><td>Full VCF + workload domains</td></tr>
+              </table>
+              Also: 8+ CPU cores (16&ndash;32 recommended), 500&nbsp;GB+ NVMe or SSD storage, and
+              <strong>nested virtualization enabled</strong> in BIOS/UEFI &mdash; the deploy scripts require
+              promiscuous mode, forged transmits, and MAC address changes on the port groups they create.
+            </span>
+          </span>
+        </label>
+
+        <label class="prereq-item">
+          <input type="checkbox" class="prereq-check" data-prereq-id="isos">
+          <span class="prereq-item-body">
+            <span class="prereq-item-title">ISOs and OVAs downloaded</span>
+            <span class="prereq-item-desc">
+              Grab whichever of these your design needs &mdash; the wizard's File locations fields point at
+              these paths, but nothing downloads them for you.
+              <strong>ESXi ISO</strong> and <strong>vCenter Server Appliance OVA</strong> &mdash; via your Broadcom
+              account, VMware vSphere &rarr; My Downloads.
+              <strong>Nested ESXi Virtual Appliance OVA</strong> (if deploying nested ESXi via OVA) &mdash; William
+              Lam's <a href="https://williamlam.com/nested-virtualization/nested-esxi-virtual-appliance" target="_blank" rel="noopener">williamlam.com/nested-virtualization</a>,
+              free with a Broadcom account on ESXi 8.x.
+              <strong>VyOS ISO</strong> (if using the virtual router) &mdash; free LTS rolling release at
+              <a href="https://vyos.io/get-vyos/" target="_blank" rel="noopener">vyos.io/get-vyos</a>.
+              <strong>Windows Server ISO</strong> (if including a domain controller) &mdash; free 180-day
+              evaluation at
+              <a href="https://www.microsoft.com/en-us/evalcenter/evaluate-windows-server-2022" target="_blank" rel="noopener">Microsoft Evaluation Center</a>.
+            </span>
+          </span>
+        </label>
+      </div>
+
+      <div class="prereq-col">
+        <label class="prereq-item">
+          <input type="checkbox" class="prereq-check" data-prereq-id="powershell">
+          <span class="prereq-item-body">
+            <span class="prereq-item-title">PowerShell 7.2+ installed</span>
+            <span class="prereq-item-desc">
+              The generated scripts use PowerShell 7 (Core) syntax &mdash; Windows PowerShell 5.1 will not run them.
+              <strong>Windows:</strong> <code>winget install Microsoft.PowerShell</code> &middot;
+              <strong>macOS:</strong> <code>brew install powershell/tap/powershell</code> &middot;
+              <strong>Linux:</strong> see
+              <a href="https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-linux" target="_blank" rel="noopener">Microsoft's install guide</a>.
+              Verify with <code>pwsh --version</code>.
+            </span>
+          </span>
+        </label>
+
+        <label class="prereq-item">
+          <input type="checkbox" class="prereq-check" data-prereq-id="powercli">
+          <span class="prereq-item-body">
+            <span class="prereq-item-title">VMware PowerCLI 13.x+ installed</span>
+            <span class="prereq-item-desc">
+              Required to run the deploy scripts against your nested lab.
+              <code>Install-Module VMware.PowerCLI -Scope CurrentUser</code>, then
+              <code>Set-PowerCLIConfiguration -ParticipateInCEIP $false -Confirm:$false</code>.
+              You'll see an "untrusted repository" prompt &mdash; type <code>Y</code>. The download is around 200&nbsp;MB.
+              Verify with <code>Get-Module VMware.PowerCLI -ListAvailable | Select Version</code>.
+            </span>
+          </span>
+        </label>
+
+        <label class="prereq-item">
+          <input type="checkbox" class="prereq-check" data-prereq-id="ovftool">
+          <span class="prereq-item-body">
+            <span class="prereq-item-title">VMware OVF Tool installed</span>
+            <span class="prereq-item-desc">
+              Command-line OVA/OVF deployment for the VCSA and nested-ESXi appliances &mdash; a standalone option
+              if you'd rather import an OVA by hand outside the generated scripts (the scripts themselves use
+              PowerCLI and govc, not ovftool). Download the installer for your platform from
+              <a href="https://support.broadcom.com" target="_blank" rel="noopener">support.broadcom.com</a>
+              (VMware vSphere &rarr; Drivers &amp; Tools &rarr; search "OVF Tool"), run it, then verify with
+              <code>ovftool --version</code>.
+            </span>
+          </span>
+        </label>
+
+        <label class="prereq-item">
+          <input type="checkbox" class="prereq-check" data-prereq-id="govc">
+          <span class="prereq-item-body">
+            <span class="prereq-item-title">govc installed</span>
+            <span class="prereq-item-desc">
+              <strong>Required if you deploy nested ESXi via OVA</strong> (the recommended path) &mdash;
+              <code>deploy-lab.ps1</code> uses govc for that import with no PowerCLI fallback; it's also the
+              preferred path for the vCenter appliance's own OVA deployment. Not needed if you deploy nested
+              ESXi via Kickstart/ISO instead.
+              Download the latest release for your platform from
+              <a href="https://github.com/vmware/govmomi/releases" target="_blank" rel="noopener">github.com/vmware/govmomi/releases</a>.
+              <strong>Windows:</strong> download <code>govc_windows_amd64.exe</code>, rename to
+              <code>govc.exe</code>, place it on your <code>PATH</code> &middot;
+              <strong>macOS:</strong> <code>brew install govc</code> &middot;
+              <strong>Linux:</strong> download the release binary and place it on your <code>PATH</code>.
+              Verify with <code>govc version</code>.
+            </span>
+          </span>
+        </label>
+
+        <label class="prereq-item">
+          <input type="checkbox" class="prereq-check" data-prereq-id="broadcom-account">
+          <span class="prereq-item-body">
+            <span class="prereq-item-title">Broadcom portal account (free)</span>
+            <span class="prereq-item-desc">
+              Required before downloading any VMware ISOs (ESXi, vCenter Server Appliance) &mdash; register first,
+              everything else in this checklist can wait until after.
+              <a href="https://support.broadcom.com" target="_blank" rel="noopener">support.broadcom.com</a>
+              &rarr; Register &rarr; <strong>My Dashboard &rarr; My Downloads &rarr; VMware vSphere</strong>.
+              First-time registration can take 15&ndash;30 minutes.
+            </span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="prereq-actions">
+      <button type="button" id="prereq-start-btn" class="btn btn-primary prereq-start-btn" disabled>
+        Start designing your lab &rarr;
+      </button>
+      <p class="prereq-actions-hint" id="prereq-actions-hint">Tick everything above to continue.</p>
+    </div>
+  </div>
+</div>
+
+<div id="mode-select-screen" class="mode-select-screen" hidden>
+  <div class="mode-select-hero">
+    <h1 class="mode-select-title">Zero to Hero Lab</h1>
+    <p class="mode-select-tagline">Build it. Break it. Fix it. Learn it.</p>
+  </div>
+
+  <div id="autosave-banner" class="autosave-banner" hidden>
+    <span id="autosave-banner-msg"></span>
+    <div class="autosave-banner-actions">
+      <button type="button" id="autosave-resume-btn" class="btn btn-primary">Resume</button>
+      <button type="button" id="autosave-discard-btn" class="btn btn-ghost">Start Fresh</button>
+    </div>
+  </div>
+
+  <div class="mode-card-row">
+    <button type="button" id="mode-build" class="mode-card mode-card-standard">
+      <span class="mode-card-badge">Standard</span>
+      <span class="mode-card-heading">Build my lab</span>
+      <span class="mode-card-desc">Answer questions and get your scripts &mdash; fast.</span>
+      <span class="mode-card-cta">Start building &rarr;</span>
+    </button>
+    <button type="button" id="mode-learn" class="mode-card mode-card-learn">
+      <span class="mode-card-badge">Learning</span>
+      <span class="mode-card-heading">Learn to design my lab</span>
+      <span class="mode-card-desc">Guided design thinking &mdash; understand the why behind every decision. Adds 15&ndash;20 minutes. Recommended for anyone studying for VMware certifications or new to infrastructure design.</span>
+      <span class="mode-card-cta">Start learning &rarr;</span>
+    </button>
+    <button type="button" id="mode-continue" class="mode-card mode-card-continue">
+      <span class="mode-card-badge">Saved</span>
+      <span class="mode-card-heading">Continue saved design</span>
+      <span class="mode-card-desc">Resume a previous wizard session from where you left off. All fields and mode settings restored.</span>
+      <span class="mode-card-cta">Load wizard-config.json &rarr;</span>
+      <span id="load-config-status" class="mode-card-file-status"></span>
+    </button>
+    <button type="button" id="mode-template" class="mode-card mode-card-template">
+      <span class="mode-card-badge">Template</span>
+      <span class="mode-card-heading">Start from template</span>
+      <span class="mode-card-desc">Use a shared lab design as your starting point &mdash; topology pre-filled, IPs and passwords blank for you to personalise.</span>
+      <span class="mode-card-cta">Load .labtemplate &rarr;</span>
+      <span id="load-template-status" class="mode-card-file-status"></span>
+    </button>
+  </div>
+  <input type="file" id="load-config-input"   accept=".json"              style="display:none;">
+  <input type="file" id="load-template-input" accept=".json,.labtemplate" style="display:none;">
+</div>
+
+<div id="template-picker-screen" class="mode-select-screen template-picker-screen" hidden>
+  <button type="button" id="template-picker-back" class="btn btn-ghost template-picker-back">&larr; Back</button>
+  <div class="mode-select-hero">
+    <h1 class="mode-select-title" style="font-size:30px;">Start from a template</h1>
+    <p class="mode-select-tagline">Pick the closest fit &mdash; every field stays editable in the wizard after.</p>
+  </div>
+  <div id="template-picker-list" class="mode-card-row"></div>
+  <p class="template-picker-own">
+    Have a <code>.labtemplate</code> file someone shared with you?
+    <button type="button" id="template-picker-upload-btn" class="btn-link">Upload it instead</button>
+  </p>
+</div>
+
+<div id="learn-onboard-screen" class="learn-onboard-screen" hidden>
+  <div class="learn-onboard-scroll">
+    <div class="learn-onboard-inner">
+
+      <div class="learn-onboard-hdr">
+        <div class="learn-onboard-eyebrow">Learning Mode</div>
+        <h1 class="learn-onboard-title">Set up your learning experience</h1>
+        <p class="learn-onboard-sub">Four quick questions &mdash; your lab guidance will be personalised to your goals.</p>
+      </div>
+
+      <!-- Q1: Learning goal -->
+      <div class="learn-ob-field">
+        <div class="learn-ob-label">What do you want to get out of this lab?</div>
+        <div class="learn-goal-grid">
+          <button type="button" class="learn-goal-card" data-goal="certification">
+            <span class="learn-goal-icon">&#127891;</span>
+            <span class="learn-goal-title">Certification prep</span>
+            <span class="learn-goal-desc">Studying for VCP, VCAP, or VCF</span>
+          </button>
+          <button type="button" class="learn-goal-card" data-goal="technology">
+            <span class="learn-goal-icon">&#128300;</span>
+            <span class="learn-goal-title">Technology deep-dive</span>
+            <span class="learn-goal-desc">NSX, vSAN, VCF, or vSphere basics</span>
+          </button>
+          <button type="button" class="learn-goal-card" data-goal="customer">
+            <span class="learn-goal-icon">&#128100;</span>
+            <span class="learn-goal-title">Customer scenario</span>
+            <span class="learn-goal-desc">Replicate a real environment to practice</span>
+          </button>
+          <button type="button" class="learn-goal-card" data-goal="homelab">
+            <span class="learn-goal-icon">&#127968;</span>
+            <span class="learn-goal-title">Home lab</span>
+            <span class="learn-goal-desc">General experimenting and learning</span>
+          </button>
+          <button type="button" class="learn-goal-card" data-goal="role">
+            <span class="learn-goal-icon">&#128188;</span>
+            <span class="learn-goal-title">New role prep</span>
+            <span class="learn-goal-desc">Building skills for an infrastructure position</span>
+          </button>
+        </div>
+        <div id="learn-cert-wrap" class="learn-ob-conditional" hidden>
+          <label for="learn-cert-target" class="learn-ob-sublabel">Which certification?</label>
+          <select id="learn-cert-target" class="learn-ob-select">
+            <option value="">Select&hellip;</option>
+            <optgroup label="VCP &mdash; VMware Certified Professional">
+            <option value="VCP-VCF-Architect">VCP &mdash; VMware Cloud Foundation Architect (2V0-13.25)</option>
+            <option value="VCP-VCF-Admin">VCP &mdash; VMware Cloud Foundation Administrator (2V0-17.25)</option>
+            <option value="VCP-VCF-Support">VCP &mdash; VMware Cloud Foundation Support (2V0-15.25)</option>
+            <option value="VCP-VVF-Admin">VCP &mdash; VMware vSphere Foundation Administrator (2V0-16.25)</option>
+            <option value="VCP-VVF-Support">VCP &mdash; VMware vSphere Foundation Support (2V0-18.25)</option>
+            </optgroup>
+            <optgroup label="VCAP &mdash; VMware Certified Advanced Professional">
+            <option value="VCAP-VCF-Automation">VCAP &mdash; VMware Cloud Foundation Automation (3V0-21.25)</option>
+            <option value="VCAP-VCF-Operations">VCAP &mdash; VMware Cloud Foundation Operations (3V0-22.25)</option>
+            <option value="VCAP-VCF-Storage">VCAP &mdash; VMware Cloud Foundation Storage (3V0-23.25)</option>
+            <option value="VCAP-VCF-VKS">VCAP &mdash; VMware Cloud Foundation VKS (3V0-24.25)</option>
+            <option value="VCAP-VCF-Networking">VCAP &mdash; VMware Cloud Foundation Networking (3V0-25.25)</option>
+            </optgroup>
+          </select>
+        </div>
+        <div id="learn-tech-wrap" class="learn-ob-conditional" hidden>
+          <label for="learn-tech-focus" class="learn-ob-sublabel">Which technology?</label>
+          <select id="learn-tech-focus" class="learn-ob-select">
+            <option value="">Select&hellip;</option>
+            <option value="vsphere">vSphere &mdash; ESXi, vCenter, clusters</option>
+            <option value="vsan">vSAN &mdash; software-defined storage</option>
+            <option value="nsx">NSX &mdash; software-defined networking</option>
+            <option value="vcf">VCF &mdash; VMware Cloud Foundation</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Q2: Experience level -->
+      <div class="learn-ob-field">
+        <div class="learn-ob-label">What is your current VMware experience level?</div>
+        <div class="learn-exp-row">
+          <button type="button" class="learn-exp-card" data-exp="new">
+            <span class="learn-exp-title">New to VMware</span>
+            <span class="learn-exp-sub">Less than 1 year</span>
+          </button>
+          <button type="button" class="learn-exp-card" data-exp="some">
+            <span class="learn-exp-title">Some experience</span>
+            <span class="learn-exp-sub">1&ndash;3 years</span>
+          </button>
+          <button type="button" class="learn-exp-card" data-exp="experienced">
+            <span class="learn-exp-title">Experienced</span>
+            <span class="learn-exp-sub">3+ years, deepening specific skills</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Q3: Success statement -->
+      <div class="learn-ob-field">
+        <label for="learn-success-stmt" class="learn-ob-label">What does success look like for you?</label>
+        <p class="learn-ob-hint">Your words &mdash; this becomes the opening statement of your design rationale.</p>
+        <textarea id="learn-success-stmt" class="learn-ob-textarea" rows="3"
+          placeholder="e.g. I want to build a 3-host vSAN cluster I can use to practise HA configuration for the VCP-VVF Admin exam, and understand what each setting actually does rather than just memorising it&hellip;"></textarea>
+      </div>
+
+      <!-- Q4: Time available -->
+      <div class="learn-ob-field">
+        <div class="learn-ob-label">How much time do you have?</div>
+        <div class="learn-time-row">
+          <button type="button" class="learn-time-card" data-time="wizard-only">
+            <span class="learn-time-title">Just the wizard</span>
+            <span class="learn-time-sub">~30 minutes</span>
+            <span class="learn-time-desc">Design and generate scripts</span>
+          </button>
+          <button type="button" class="learn-time-card" data-time="wizard-build">
+            <span class="learn-time-title">Wizard + build</span>
+            <span class="learn-time-sub">~half day</span>
+            <span class="learn-time-desc">Design, generate, and build the lab</span>
+          </button>
+          <button type="button" class="learn-time-card" data-time="full-day">
+            <span class="learn-time-title">Full lab</span>
+            <span class="learn-time-sub">Full day+</span>
+            <span class="learn-time-desc">Design, build, and troubleshooting practice</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Personalised learning path summary -->
+      <div id="learn-path-summary" class="learn-path-summary" hidden>
+        <div class="learn-path-eyebrow">Your learning path</div>
+        <div id="learn-path-text" class="learn-path-text"></div>
+      </div>
+
+      <div id="learn-arch-toggle-wrap" class="learn-arch-toggle-wrap" hidden>
+        <label class="learn-arch-toggle-label">
+          <input type="checkbox" id="learn-arch-toggle" class="learn-arch-checkbox">
+          <div class="learn-arch-toggle-content">
+            <div class="learn-arch-toggle-title">Enable Architect Thinking</div>
+            <div class="learn-arch-toggle-desc">Adds a consultant discovery session, requirements prioritisation (MoSCoW), options analysis at every major decision, a running decision log, and a risk register. Produces a design document you could hand to a customer. Recommended for VCAP-level certifications (Automation, Operations, Storage, VKS, Networking) or VCP-VCF Architect certification study. Adds ~45 minutes.</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="learn-ob-actions">
+        <button type="button" id="learn-onboard-start" class="btn btn-primary learn-ob-start" disabled>
+          Start learning &rarr;
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="arch-discovery-screen" class="arch-discovery-screen" hidden>
+  <div class="arch-disc-scroll">
+    <div class="arch-disc-inner">
+
+      <div class="arch-disc-hdr">
+        <div class="arch-disc-eyebrow">Architect Mode &middot; Discovery</div>
+        <h1 class="arch-disc-title">Before we touch any technology</h1>
+        <p class="arch-disc-sub">You are the consultant. A good architect understands the requirement before recommending a solution. Work through this discovery session first.</p>
+      </div>
+
+      <!-- Section 1: Problem statement + success criteria (merged) -->
+      <div class="arch-disc-section">
+        <label for="arch-problem-stmt" class="arch-disc-section-label">In one sentence, what problem does this lab solve?</label>
+        <textarea id="arch-problem-stmt" class="arch-disc-textarea" rows="2"
+          placeholder="e.g. We need a reproducible environment to validate NSX DFW policies before applying them to production."></textarea>
+        <div class="arch-success-fields">
+          <div>
+            <label for="arch-success-criteria" class="arch-disc-sublabel">What does success look like in 3 months?</label>
+            <textarea id="arch-success-criteria" class="arch-disc-textarea" rows="2"
+              placeholder="e.g. I can confidently configure NSX DFW policies, demonstrate HA failover, and explain every design decision."></textarea>
+          </div>
+          <div>
+            <label for="arch-success-measure" class="arch-disc-sublabel">How will you know this lab has achieved its purpose?</label>
+            <textarea id="arch-success-measure" class="arch-disc-textarea" rows="2"
+              placeholder="e.g. I pass the VCP-VCF Admin exam, or I can run through the customer scenario without referring to notes."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: MoSCoW requirements (Must/Won't only) -->
+      <div class="arch-disc-section">
+        <div class="arch-disc-section-label">What's in scope, and what's explicitly not?</div>
+        <p class="arch-disc-hint">For each technical area, mark whether it's in scope for this build. Be honest &mdash; especially about Won't Have.</p>
+        <div class="arch-moscow-table">
+          <div class="arch-moscow-header">
+            <span></span>
+            <span class="arch-moscow-col must">Must Have</span>
+            <span class="arch-moscow-col wont">Won't Have</span>
+          </div>
+          <div class="arch-moscow-row" data-area="networking">
+            <span class="arch-moscow-area">Networking (VLANs, router, segmentation)</span>
+            <label class="arch-moscow-cell must"><input type="radio" name="moscow-networking" value="must" checked><span></span></label>
+            <label class="arch-moscow-cell wont"><input type="radio" name="moscow-networking" value="wont"><span></span></label>
+          </div>
+          <div class="arch-moscow-row" data-area="compute">
+            <span class="arch-moscow-area">Compute (nested ESXi, cluster sizing)</span>
+            <label class="arch-moscow-cell must"><input type="radio" name="moscow-compute" value="must" checked><span></span></label>
+            <label class="arch-moscow-cell wont"><input type="radio" name="moscow-compute" value="wont"><span></span></label>
+          </div>
+          <div class="arch-moscow-row" data-area="storage">
+            <span class="arch-moscow-area">Storage (vSAN, local datastores)</span>
+            <label class="arch-moscow-cell must"><input type="radio" name="moscow-storage" value="must" checked><span></span></label>
+            <label class="arch-moscow-cell wont"><input type="radio" name="moscow-storage" value="wont"><span></span></label>
+          </div>
+          <div class="arch-moscow-row" data-area="security">
+            <span class="arch-moscow-area">Security (NSX DFW, micro-segmentation)</span>
+            <label class="arch-moscow-cell must"><input type="radio" name="moscow-security" value="must" checked><span></span></label>
+            <label class="arch-moscow-cell wont"><input type="radio" name="moscow-security" value="wont"><span></span></label>
+          </div>
+          <div class="arch-moscow-row" data-area="management">
+            <span class="arch-moscow-area">Management (vCenter, SDDC Manager, monitoring)</span>
+            <label class="arch-moscow-cell must"><input type="radio" name="moscow-management" value="must" checked><span></span></label>
+            <label class="arch-moscow-cell wont"><input type="radio" name="moscow-management" value="wont"><span></span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Constraints -->
+      <div class="arch-disc-section">
+        <div class="arch-disc-section-label">What are you working within?</div>
+        <div class="arch-constraints-grid">
+          <div class="arch-constraint-field">
+            <label class="arch-disc-sublabel" for="arch-constraint-time">Time to build</label>
+            <select id="arch-constraint-time" class="arch-disc-select">
+              <option value="">Select&hellip;</option>
+              <option value="weekend">A weekend</option>
+              <option value="one-week">One week</option>
+              <option value="one-month">One month</option>
+              <option value="ongoing">Ongoing / no deadline</option>
+            </select>
+          </div>
+          <div class="arch-constraint-field">
+            <label class="arch-disc-sublabel" for="arch-constraint-budget">Budget</label>
+            <select id="arch-constraint-budget" class="arch-disc-select">
+              <option value="">Select&hellip;</option>
+              <option value="homelab">Home lab &mdash; no additional spend</option>
+              <option value="small">Small budget (up to &pound;500)</option>
+              <option value="project">Project budget &mdash; needs discussion</option>
+            </select>
+          </div>
+          <div class="arch-constraint-field">
+            <label class="arch-disc-sublabel" for="arch-constraint-skills">Skills &mdash; what do you already know well?</label>
+            <textarea id="arch-constraint-skills" class="arch-disc-textarea arch-disc-textarea-sm" rows="2"
+              placeholder="e.g. Strong on vSphere, learning NSX, no VCF experience yet"></textarea>
+          </div>
+          <div class="arch-constraint-field">
+            <label class="arch-disc-sublabel" for="arch-constraint-compliance">Compliance requirements (if any)</label>
+            <textarea id="arch-constraint-compliance" class="arch-disc-textarea arch-disc-textarea-sm" rows="2"
+              placeholder="e.g. Data must not leave the UK, audit logging required, encryption at rest needed"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Initial risks -->
+      <div class="arch-disc-section">
+        <div class="arch-disc-section-label">What are your top 3 risks before starting?</div>
+        <p class="arch-disc-hint">Identifying risks before you start is what separates an architect from a technician. We will add to this register automatically as you make design decisions.</p>
+        <div id="arch-risk-inputs" class="arch-risk-inputs"></div>
+        <div id="arch-suggested-risks" class="arch-suggested-risks">
+          <div class="arch-suggested-label">Suggested risks &mdash; click to add:</div>
+          <div id="arch-risk-chips" class="arch-risk-chips"></div>
+        </div>
+      </div>
+
+      <!-- Section 5: Design principles -->
+      <div class="arch-disc-section">
+        <div class="arch-disc-section-label">Design principles</div>
+        <p class="arch-disc-hint">Agree on the principles that will guide every decision before we start designing. These will be referenced throughout.</p>
+        <div class="arch-principles-grid" id="arch-principles-grid"></div>
+        <div class="arch-principle-custom">
+          <label for="arch-principle-custom-input" class="arch-disc-sublabel">Add your own principle</label>
+          <input type="text" id="arch-principle-custom-input" class="arch-disc-input"
+            placeholder="e.g. Every change must be reversible within 15 minutes">
+          <button type="button" id="arch-principle-add-btn" class="btn btn-secondary arch-principle-add">Add</button>
+        </div>
+        <div id="arch-custom-principles-list" class="arch-custom-principles-list"></div>
+      </div>
+
+      <div class="arch-disc-actions">
+        <button type="button" id="arch-disc-start" class="btn btn-primary arch-disc-start">
+          Begin design &rarr;
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="app" hidden>
+
+  <div id="arch-options-panel" class="arch-options-overlay" hidden>
+    <div class="arch-options-inner">
+      <div class="arch-options-hdr">
+        <div class="arch-options-eyebrow">Architect Mode &middot; Options Analysis</div>
+        <h2 id="arch-options-title" class="arch-options-title"></h2>
+        <p id="arch-options-context" class="arch-options-context"></p>
+      </div>
+      <div id="arch-options-table" class="arch-options-table"></div>
+      <div class="arch-options-rationale-wrap">
+        <label for="arch-options-rationale" class="arch-options-rationale-label">Why are you choosing this option?</label>
+        <textarea id="arch-options-rationale" class="arch-options-rationale-ta" rows="2"
+          placeholder="Explain your reasoning — this goes into your decision log."></textarea>
+      </div>
+      <div class="arch-options-actions">
+        <button type="button" id="arch-options-confirm" class="btn btn-primary">Confirm decision &rarr;</button>
+        <button type="button" id="arch-options-skip" class="btn btn-ghost">Skip for now</button>
+      </div>
+    </div>
+  </div>
+
+  <aside class="rail">
+    <div class="rail-brand">
+      <span class="rail-brand-name">Zero to Hero Lab</span>
+      <span class="rail-brand-tag">v1 &middot; vSphere only, no VCF</span>
+    </div>
+    <ol class="rail-steps" id="rail-steps">
+      <li data-step="0"><span class="rail-num">01</span><span>Physical host</span></li>
+      <li data-step="1"><span class="rail-num">02</span><span>Home network</span></li>
+      <li data-step="2"><span class="rail-num">03</span><span>Storage</span></li>
+      <li data-step="3"><span class="rail-num">04</span><span>Use case</span></li>
+      <li data-step="4"><span class="rail-num">05</span><span>Template</span></li>
+      <li data-step="5"><span class="rail-num">06</span><span>Virtual router</span></li>
+      <li data-step="6"><span class="rail-num">07</span><span>Domain controller</span></li>
+      <li data-step="7"><span class="rail-num">08</span><span>Lab networks</span></li>
+      <li data-step="8"><span class="rail-num">09</span><span>Nested cluster</span></li>
+      <li data-step="9"><span class="rail-num">10</span><span>NSX-T</span></li>
+      <li data-step="10"><span class="rail-num">11</span><span>Workload VMs</span></li>
+      <li data-step="11"><span class="rail-num">12</span><span>Review &amp; generate</span></li>
+      <li data-step="12" hidden><span class="rail-num">⚙</span><span>Troubleshooting</span></li>
+    </ol>
+    <div class="rail-footer">
+      <a href="/diagram" target="_blank" rel="noopener" class="rail-diagram-btn" id="rail-diagram-btn">&#x1F5A7; View Diagram</a>
+      <button type="button" id="rail-save-btn" class="rail-save-btn">&#8595; Save progress</button>
+    </div>
+
+    <!-- Architect mode panels — hidden in non-architect mode -->
+    <div id="arch-decision-log-panel" class="arch-sidebar-panel" hidden>
+      <div class="arch-panel-header" id="arch-dl-header">
+        <span class="arch-panel-title">Decision Log</span>
+        <span class="arch-panel-count" id="arch-dl-count">0</span>
+        <span class="arch-panel-toggle">&#9660;</span>
+      </div>
+      <div id="arch-dl-body" class="arch-panel-body"></div>
+    </div>
+
+    <div id="arch-risk-register-panel" class="arch-sidebar-panel" hidden>
+      <div class="arch-panel-header" id="arch-rr-header">
+        <span class="arch-panel-title">Risk Register</span>
+        <span class="arch-panel-count" id="arch-rr-count">0</span>
+        <span class="arch-panel-toggle">&#9660;</span>
+      </div>
+      <div id="arch-rr-body" class="arch-panel-body arch-rr-body"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div id="config-loaded-banner" class="config-loaded-banner" hidden></div>
+
+    <div id="wizard-steps">
+
+      <!-- Step 0: Hardware -->
+      <section class="step" data-step="0">
+        <h1>What are you running this on?</h1>
+        <p class="step-intro">The physical host's specs decide how big the nested cluster can realistically be.</p>
+
+        <div class="learn-block" data-learn-step="0">
+          <div class="learn-context">
+            <p>Your physical hardware defines your constraints. Every design decision we make has to work within what you actually have. There are no wrong answers here &mdash; but being honest about your constraints leads to a better design.</p>
+          </div>
+          <div id="learn-ram-context" class="learn-insight" hidden></div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="hostCount">Physical hosts</label>
+            <input type="number" id="hostCount" min="1" value="1">
+            <p class="hint">Each physical host can run several nested ESXi VMs. If you have more than one, the wizard will ask for each host's IP and can distribute nested VMs across them.</p>
+            <p id="host-count-warning" class="hint hint-warning" hidden>This wizard is optimised for home lab deployments of 1&ndash;3 physical hosts. More than 3 is supported but untested &mdash; proceed with caution.</p>
+          </div>
+          <div class="field">
+            <label for="host1Ip">Host 1 management IP</label>
+            <input type="text" id="host1Ip" placeholder="e.g. 192.168.1.10">
+            <p class="hint">IP address of the physical ESXi host — used as the deploy target in generated scripts.</p>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="cpuCores">Logical CPU cores (per host)</label>
+            <input type="number" id="cpuCores" min="1" placeholder="e.g. 36">
+            <p class="hint">Logical threads on a single physical host, not the total across all hosts.</p>
+          </div>
+          <div class="field">
+            <label for="ramGB">RAM (GB, per host)</label>
+            <input type="number" id="ramGB" min="1" placeholder="e.g. 256">
+          </div>
+        </div>
+
+        <div id="hardware-validator" class="hardware-validator" hidden>
+          <div class="hw-validator-hdr">What can you build with this?</div>
+          <div id="hw-validator-tier" class="hw-validator-tier"></div>
+          <div id="hw-validator-warning" class="notice-block notice-warning" hidden></div>
+          <details class="hw-validator-details">
+            <summary>Show the RAM math</summary>
+            <div id="hw-validator-breakdown"></div>
+          </details>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="nicCount">Physical NICs (per host)</label>
+            <input type="number" id="nicCount" min="1" placeholder="e.g. 2">
+          </div>
+          <div class="field">
+            <label for="nicSpeed">NIC speed</label>
+            <select id="nicSpeed">
+              <option value="">Select&hellip;</option>
+              <option value="1gbe">1GbE</option>
+              <option value="10gbe">10GbE</option>
+              <option value="25gbe">25GbE or faster</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="nicModel">NIC vendor / model <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(optional &mdash; HCL check)</span></label>
+          <input type="text" id="nicModel" placeholder="e.g. Intel X710-DA2, Broadcom BCM5720">
+          <p class="hint">Enter the chipset or product name. Realtek, Intel I210/I211, Killer, and Atheros NICs are flagged as incompatible with ESXi 8.0+ without community drivers.</p>
+        </div>
+
+        <!-- Additional physical hosts (shown dynamically when hostCount > 1) -->
+        <div id="additional-hosts-section" hidden>
+          <hr style="margin:18px 0;border-color:var(--border);">
+          <h3 style="font-size:14px;margin-bottom:12px;color:var(--text-muted);">Additional physical hosts</h3>
+          <div id="additional-hosts-list"></div>
+        </div>
+
+        <!-- Merged from old step 3: ESXi version -->
+        <hr style="margin:18px 0;border-color:var(--border);">
+        <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em;">ESXi version</h3>
+
+        <div class="field">
+          <label for="esxiVersion">ESXi / vSphere version</label>
+          <select id="esxiVersion">
+            <option value="">Select&hellip;</option>
+            <option value="9.1">ESXi 9.1 (latest)</option>
+            <option value="9.0u2">ESXi 9.0 Update 2</option>
+            <option value="9.0u1">ESXi 9.0 Update 1</option>
+            <option value="9.0">ESXi 9.0</option>
+            <option value="8.0u3">ESXi 8.0 Update 3</option>
+            <option value="8.0u2">ESXi 8.0 Update 2</option>
+            <option value="8.0u1">ESXi 8.0 Update 1</option>
+          </select>
+          <p class="hint">ESXi 8.x and 9.x all require at least 8GB vRAM per nested host. The wizard warns if the nested host sizing falls below the minimum. ESXi 9.x requires a VCF/VVF subscription to download.</p>
+        </div>
+
+        <div id="esxi9-notices" style="margin-top:12px;" hidden>
+          <div class="notice-block notice-warning">
+            <strong>CPU compatibility:</strong> ESXi 9.0+ dropped support for Intel Skylake, Kaby Lake-S, Broadwell-EP/DE, and 1st-Gen Xeon Scalable (Platinum 8100, Gold 6100/5100, Silver 4100, Bronze 3100). These require <code>allowLegacyCPU=true</code> to install &mdash; the wizard enables it in the nested cluster step by default.
+          </div>
+          <div class="notice-block notice-info" style="margin-top:8px;">
+            AMD Ryzen (Zen 4/5): known high CPU utilisation at boot due to slow entropy generation &mdash; a workaround command is included in the generated build guide. NVMe memory tiering now works inside nested VMs in ESXi 9.1 using <code>sched.mem.enableNestedTiering&nbsp;=&nbsp;true</code> on each nested host.
+          </div>
+          <div class="notice-block notice-info" style="margin-top:8px;">
+            ESXi 9.x requires an active <strong>VVF or VCF subscription</strong> to download from Broadcom. ESXi 8.x is available for free with a Broadcom account.
+          </div>
+        </div>
+
+        <!-- Merged from old step 15: File locations (now always visible — the wizard order
+             changed and hostCount/vyos/dc/esxiDeployMethod answers now come after this step) -->
+        <hr style="margin:18px 0;border-color:var(--border);">
+        <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em;">Software library</h3>
+        <p class="hint" style="margin-bottom:14px;">
+          Point the wizard at the ISO/OVA files on this machine. These are written into
+          <code>lab-config.json</code> alongside the generated scripts — every script reads its
+          file path from there, so you won't be prompted for it again when you run them.
+          All five are optional — leave any of them blank now and fill them in later by editing
+          <code>lab-config.json</code> directly. (Not every design needs every file — e.g. skip the
+          VyOS ISO if you don't enable a virtual router later.)
+        </p>
+
+        <div class="field" id="file-loc-vcenter-ova">
+          <label for="vCenterOvaPath">vCenter Server Appliance (VCSA) OVA path</label>
+          <input type="text" id="vCenterOvaPath" placeholder="C:\Lab\ISOs\vcsa\vcsa.ova">
+          <p class="hint">Extract this from the downloaded <code>VMware-VCSA-all-*.iso</code> bundle first — see PREREQUISITES.md.</p>
+        </div>
+
+        <div class="field" id="file-loc-esxi-iso">
+          <label for="esxiIsoPath">ESXi install ISO path</label>
+          <input type="text" id="esxiIsoPath" placeholder="C:\Lab\ISOs\VMware-VMvisor-Installer-9.0.iso">
+          <p class="hint">Uploaded to the datastore automatically on first run. Only needed if you choose the ISO deploy method in the Nested cluster step.</p>
+        </div>
+
+        <div class="field" id="file-loc-esxi-ova">
+          <label for="nestedEsxiOvaPath">Nested ESXi appliance OVA path</label>
+          <input type="text" id="nestedEsxiOvaPath" placeholder="C:\Lab\ISOs\Nested_ESXi_Appliance.ova">
+          <p class="hint">William Lam's Nested ESXi Virtual Appliance — read directly from this path during import. Only needed if you choose the OVA deploy method in the Nested cluster step.</p>
+        </div>
+
+        <div class="field" id="file-loc-vyos">
+          <label for="vyosIsoPath">VyOS ISO path</label>
+          <input type="text" id="vyosIsoPath" placeholder="C:\Lab\ISOs\vyos-rolling.iso">
+          <p class="hint">Uploaded to the datastore automatically on first run. Only needed if you enable a VyOS virtual router later.</p>
+        </div>
+
+        <div class="field" id="file-loc-windows">
+          <label for="windowsServerIsoPath">Windows Server ISO path</label>
+          <input type="text" id="windowsServerIsoPath" placeholder="C:\Lab\ISOs\WinServer2022-eval.iso">
+          <p class="hint">Uploaded to the datastore automatically on first run. Only needed if you deploy a domain controller later.</p>
+        </div>
+
+        <div class="field" id="file-loc-vis-ova">
+          <label for="visOvaPath">VIS appliance OVA path</label>
+          <input type="text" id="visOvaPath" placeholder="C:\Lab\ISOs\vcf-infrastructure-services-appliance-1.0.3.ova">
+          <p class="hint">William Lam's VCF Infrastructure Services Appliance — read directly from this path via OVF Tool. Only needed if you choose the VIS Appliance option in the Domain controller step. <a href="https://lamw.github.io/vcf-infrastructure-service-appliance/" target="_blank" rel="noopener">lamw.github.io/vcf-infrastructure-service-appliance</a></p>
+        </div>
+      </section>
+
+      <!-- Step 1: Existing network -->
+      <section class="step" data-step="1">
+        <h1>What does the network around this look like?</h1>
+        <p class="step-intro">Not the lab itself yet &mdash; the network the physical host already sits on.</p>
+
+        <div class="learn-block" data-learn-step="1">
+          <div class="learn-context">
+            <p>Understanding your existing network is critical &mdash; your lab has to coexist with it. The most common lab networking mistakes come from not thinking through how lab traffic interacts with the home or office network. An IP conflict or broadcast storm from the lab can knock out your main network.</p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Network type <span class="info-icon">i<span class="info-tooltip">Flat means all devices share a single broadcast domain with no VLAN separation &mdash; typical of a home router with one LAN port. VLANs allow traffic isolation and require a managed switch. If your switch has a web UI or CLI for configuration, it&rsquo;s probably managed and VLAN-capable.</span></span></label>
+          <div class="choice-row">
+            <label class="choice-pill"><input type="radio" name="networkType" value="flat"><span>Flat, no VLANs</span></label>
+            <label class="choice-pill"><input type="radio" name="networkType" value="vlans"><span>VLANs configured</span></label>
+            <label class="choice-pill"><input type="radio" name="networkType" value="unsure"><span>Not sure</span></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Can your router/switch tag VLANs? <span class="info-icon">i<span class="info-tooltip">Managed switches (those with a web UI or CLI) can tag VLAN IDs onto frames. Unmanaged consumer switches cannot. If you bought it from a consumer electronics shop with no setup required, it&rsquo;s probably unmanaged. If unsure, choose &ldquo;Not sure&rdquo; &mdash; the wizard will keep things simple.</span></span></label>
+          <div class="choice-row">
+            <label class="choice-pill"><input type="radio" name="vlanCapable" value="yes"><span>Yes</span></label>
+            <label class="choice-pill"><input type="radio" name="vlanCapable" value="no"><span>No</span></label>
+            <label class="choice-pill"><input type="radio" name="vlanCapable" value="unsure"><span>Not sure</span></label>
+          </div>
+          <p class="hint">If no, the nested networks below will need to share a VLAN or run untagged.</p>
+        </div>
+
+        <div class="field">
+          <label>Is DHCP available, or static IPs only? <span class="info-icon">i<span class="info-tooltip">DHCP automatically assigns IP addresses to devices when they connect. Most home routers do this &mdash; if your laptop gets an IP automatically when you plug in, DHCP is available. Your physical ESXi host itself still needs a static IP, but this affects how VyOS and the DC are configured.</span></span></label>
+          <div class="choice-row">
+            <label class="choice-pill"><input type="radio" name="dhcpAvailable" value="yes"><span>DHCP available</span></label>
+            <label class="choice-pill"><input type="radio" name="dhcpAvailable" value="no"><span>Static only</span></label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 2: Storage -->
+      <section class="step" data-step="2">
+        <h1>What storage do you have?</h1>
+        <p class="step-intro">One entry per physical disk or disk group on the host from step 1 &mdash; drives sizing checks and script comments.</p>
+
+        <div class="field">
+          <label>Storage devices (per host)</label>
+          <div id="storage-device-list"></div>
+          <button type="button" id="add-storage-device" class="btn btn-secondary" style="margin-top:4px;font-size:12.5px;padding:7px 12px;">+ Add device</button>
+        </div>
+      </section>
+
+      <!-- Step 3: Use case -->
+      <section class="step" data-step="3">
+        <h1>What's this lab for?</h1>
+        <p class="step-intro">This shapes the defaults for cluster size and sizing checks later. You can override anything.</p>
+
+        <div class="field">
+          <label>Lab session</label>
+          <div class="choice-row">
+            <label class="choice-pill"><input type="radio" name="labMode" value="new" checked><span>New lab</span></label>
+            <label class="choice-pill"><input type="radio" name="labMode" value="extend"><span>Extend existing lab</span></label>
+          </div>
+          <p class="hint">Load a previously generated <code>lab-spec.json</code> to pre-fill the wizard with your current lab&rsquo;s settings — then change only what you&rsquo;re adding.</p>
+        </div>
+
+        <div id="spec-file-field" class="field" hidden>
+          <label>Load existing spec</label>
+          <input type="file" id="spec-file-input" accept=".json" style="width:auto;font-family:var(--mono);font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;">
+          <span id="spec-load-status" class="hint"></span>
+        </div>
+
+        <div id="extend-mode-indicator" class="extend-indicator" hidden>
+          Extending existing lab — wizard pre-filled from spec. Modify what you want to add or change.
+        </div>
+
+        <div class="field">
+          <label>Use case</label>
+          <div class="radio-grid" id="useCase-options">
+            <label class="radio-card"><input type="radio" name="useCase" value="certification"><span class="radio-card-title">Certification study</span><span class="radio-card-sub">VCP / VCF exam practice</span></label>
+            <label class="radio-card"><input type="radio" name="useCase" value="feature_testing"><span class="radio-card-title">Feature testing</span><span class="radio-card-sub">vSAN, NSX, specific behaviour</span></label>
+            <label class="radio-card"><input type="radio" name="useCase" value="homelab"><span class="radio-card-title">General homelab</span><span class="radio-card-sub">Tinkering, no fixed goal</span></label>
+            <label class="radio-card"><input type="radio" name="useCase" value="demo"><span class="radio-card-title">Customer demo</span><span class="radio-card-sub">Something to show, not break</span></label>
+            <label class="radio-card"><input type="radio" name="useCase" value="devtest"><span class="radio-card-title">Dev/test sandbox</span><span class="radio-card-sub">Disposable, rebuilt often</span></label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 4: Recommended template -->
+      <section class="step" data-step="4">
+        <h1>Want a head start?</h1>
+        <p class="step-intro">
+          Based on what you've told us so far, one of these pre-built templates might save
+          some clicks. Picking one fills in the networking, cluster, and feature settings on
+          the steps that follow &mdash; your hardware and network answers so far are kept
+          as-is, and everything stays editable afterward. Or just click Next below to
+          customise everything yourself.
+        </p>
+        <div id="template-step-list" class="mode-card-row"></div>
+      </section>
+
+      <!-- Step 5: VyOS virtual router -->
+      <section class="step" data-step="5">
+        <h1>Top-of-rack virtual router?</h1>
+        <p class="step-intro">A VyOS VM acts as the lab's router and firewall — gives nested hosts a routable path and provides NAT, DHCP, and DNS forwarding.</p>
+
+        <div class="learn-block" data-learn-step="5">
+          <div class="learn-context">
+            <p>Your virtual router choice shapes your networking options throughout the lab. Consider the trade-offs before deciding:</p>
+            <div class="learn-comparison">
+              <div class="learn-compare-card">
+                <div class="learn-compare-heading">VyOS</div>
+                <div class="learn-compare-body">Open source, highly configurable, supports BGP &mdash; steeper learning curve but teaches real routing concepts used in enterprise VMware environments.</div>
+                <div class="learn-compare-tag learn-tag-good">Best for certification study</div>
+              </div>
+              <div class="learn-compare-card">
+                <div class="learn-compare-heading">pfSense</div>
+                <div class="learn-compare-body">GUI-driven, easier to start with, good firewall features &mdash; less relevant to enterprise VMware environments.</div>
+                <div class="learn-compare-tag learn-tag-neutral">Best for general networking</div>
+              </div>
+              <div class="learn-compare-card">
+                <div class="learn-compare-heading">No router</div>
+                <div class="learn-compare-body">Simplest setup &mdash; limits what you can learn about network segmentation. Fine for basic vSphere practice.</div>
+                <div class="learn-compare-tag learn-tag-warn">Limits learning scope</div>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="learn-router-choice">Which fits your learning goal and why?</label>
+            <textarea id="learn-router-choice" class="learn-textarea" rows="2" placeholder="e.g. VyOS because I'm targeting VCAP-VCF Networking and want to understand BGP peering with NSX..."></textarea>
+          </div>
+        </div>
+
+        <div class="field checkbox-field">
+          <label class="checkbox-row"><input type="checkbox" id="vyosEnabled"><span>Deploy a VyOS virtual router/firewall for this lab</span></label>
+          <p class="hint">VyOS is free and open source. The script builds the VM shell and attaches the ISO; you configure it manually after boot. Very low overhead — 2 vCPU, 1GB RAM.</p>
+        </div>
+
+        <div id="vyos-mode-field" class="field" hidden>
+          <label>Network mode</label>
+          <div class="choice-row">
+            <label class="choice-pill"><input type="radio" name="vyosNetworkMode" value="basic"><span>Basic (NAT, DHCP, DNS forwarding)</span></label>
+            <label class="choice-pill"><input type="radio" name="vyosNetworkMode" value="bgp"><span>Include BGP peering setup</span></label>
+          </div>
+          <p class="hint">BGP adds the peering config to the markdown walkthrough. Both modes produce the same VM shell — it's the post-install config that differs.</p>
+        </div>
+      </section>
+
+      <!-- Step 6: Domain controller -->
+      <section class="step" data-step="6">
+        <h1>Domain controller?</h1>
+        <p class="step-intro">A Windows DC gives the lab DNS, NTP, and Active Directory &mdash; required before vCenter is deployed if you want valid FQDNs and certificates. Choose how much you want on this VM.</p>
+
+        <div class="field">
+          <div class="dc-profile-cards" id="dc-profile-cards">
+
+            <label class="dc-profile-card" data-profile="none">
+              <input type="radio" name="dcProfile" value="none" checked>
+              <div class="dc-profile-card-body">
+                <div class="dc-profile-card-title">No DC</div>
+                <div class="dc-profile-card-desc">Skip &mdash; use an external DNS/NTP server or configure manually after deployment.</div>
+                <div class="dc-profile-card-specs dc-profile-card-specs-none">No VM created</div>
+              </div>
+            </label>
+
+            <label class="dc-profile-card" data-profile="dc-only">
+              <input type="radio" name="dcProfile" value="dc-only">
+              <div class="dc-profile-card-body">
+                <div class="dc-profile-card-title">DC only</div>
+                <div class="dc-profile-card-desc">Active Directory, DNS, and NTP. Minimum footprint.</div>
+                <div class="dc-profile-card-specs">2 vCPU &middot; 4 GB RAM &middot; 60 GB disk</div>
+              </div>
+            </label>
+
+            <label class="dc-profile-card" data-profile="dc-jumpbox">
+              <input type="radio" name="dcProfile" value="dc-jumpbox">
+              <div class="dc-profile-card-body">
+                <div class="dc-profile-card-title">DC + Jumpbox</div>
+                <div class="dc-profile-card-desc">AD/DNS/NTP with RDP access configured. Generates a pre-configured <code>.rdp</code> file for instant double-click connection from your desktop.</div>
+                <div class="dc-profile-card-specs">4 vCPU &middot; 8 GB RAM &middot; 100 GB disk</div>
+              </div>
+            </label>
+
+            <label class="dc-profile-card" data-profile="dc-jumpbox-fileserver">
+              <input type="radio" name="dcProfile" value="dc-jumpbox-fileserver">
+              <div class="dc-profile-card-body">
+                <div class="dc-profile-card-title">DC + Jumpbox + File Server</div>
+                <div class="dc-profile-card-desc">All of the above plus a second disk for ISO and software storage, shared across the lab via a Windows file share.</div>
+                <div class="dc-profile-card-specs">4 vCPU &middot; 8 GB RAM &middot; 100 GB OS + storage disk</div>
+              </div>
+            </label>
+
+            <label class="dc-profile-card" data-profile="vis">
+              <input type="radio" name="dcProfile" value="vis">
+              <div class="dc-profile-card-body">
+                <div class="dc-profile-card-title">William Lam's VIS Appliance <span class="dc-profile-recommended">Recommended for VCF</span></div>
+                <div class="dc-profile-card-desc">Pre-built Ubuntu appliance providing DNS, NTP, DHCP, depot and container registry. Recommended for VCF lab deployments. No licence required. <a href="https://lamw.github.io/vcf-infrastructure-service-appliance/" target="_blank" rel="noopener">lamw.github.io/vcf-infrastructure-service-appliance</a></div>
+                <div class="dc-profile-card-specs">2 vCPU &middot; 4 GB RAM &middot; 30 GB disk</div>
+              </div>
+            </label>
+
+          </div>
+        </div>
+
+        <div id="vis-fields" hidden>
+          <div class="field">
+            <label for="visIpAddress">VIS appliance IP address</label>
+            <input type="text" id="visIpAddress" placeholder="e.g. 192.168.10.6">
+            <p class="hint">Used for the DNS/NTP/DHCP service references generated throughout the design doc and build guide. Attribution: William Lam (williamlam.com) &mdash; VCF Infrastructure Services Appliance.</p>
+          </div>
+        </div>
+
+        <div id="dc-fields" hidden>
+          <div class="field">
+            <label>Where should the DC be deployed? <span class="info-icon">i<span class="info-tooltip">Lab management network: DC gets a NIC on Nested-Trunk, like the rest of the lab &mdash; reachable through VyOS. Physical/home network: DC gets a NIC on the WAN port group (VM Network) instead &mdash; simpler for home labs where the DC just needs to be reachable, with no lab-network routing to worry about.</span></span></label>
+            <div class="radio-group">
+              <label class="radio-row"><input type="radio" name="dcNetworkPlacement" value="lab" checked><span>Lab management network (Nested-Trunk)</span></label>
+              <label class="radio-row"><input type="radio" name="dcNetworkPlacement" value="physical"><span>Physical/home network (VM Network)</span></label>
+            </div>
+            <p class="hint" id="dc-network-placement-hint-lab">DC connects to Nested-Trunk, the same internal lab network as everything else. Its IP must fall inside the management CIDR (set in step 5).</p>
+            <p class="hint" id="dc-network-placement-hint-physical" hidden>DC connects directly to the WAN port group instead of the lab network &mdash; its IP address below should be on your physical/home network, not the lab management CIDR. Every script that references the DC for DNS/NTP will use this home-network IP.</p>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="dcDomainName">Domain name</label>
+              <input type="text" id="dcDomainName" placeholder="lab.yourdomain.com">
+              <p class="hint">e.g. <code>lab.acme.internal</code> &mdash; used in the DC promotion command and the vCenter FQDN.</p>
+            </div>
+            <div class="field">
+              <label for="dcIpAddress" id="dc-ip-address-label">DC IP address</label>
+              <input type="text" id="dcIpAddress" placeholder="e.g. 192.168.10.5">
+              <p class="hint" id="dc-ip-address-hint">Checked against the lab network ranges in the next steps to flag IP conflicts.</p>
+            </div>
+          </div>
+          <div class="field" id="dc-storage-disk-field" hidden>
+            <label for="dcStorageDiskGB">Storage disk size (GB)</label>
+            <input type="number" id="dcStorageDiskGB" min="100" step="50" value="200" placeholder="200">
+            <p class="hint">This second disk is formatted and shared as <code>\\dc\LabISOs</code> &mdash; a central location to drop ISOs and software visible to all lab VMs. 200&ndash;500 GB is typical.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 7: Lab networks -->
+      <section class="step" data-step="7">
+
+        <h1>Lay out the lab's networks</h1>
+        <p class="step-intro">All of these ride a single VLAN trunk port group on the physical host &mdash; VyOS is the only thing that routes between them.</p>
+
+        <div class="learn-block" data-learn-step="7">
+          <div class="learn-context">
+            <p>Network segmentation is one of the most important design decisions in any VMware environment. We are going to design separate VLANs for different traffic types &mdash; here is why each one matters:</p>
+            <div class="learn-traffic-types">
+              <div class="learn-traffic-row"><span class="learn-traffic-name">Management</span><span class="learn-traffic-desc">ESXi host management, vCenter, and infrastructure services. Needs to be reachable but should be separated from VM workload traffic.</span></div>
+              <div class="learn-traffic-row"><span class="learn-traffic-name">vMotion</span><span class="learn-traffic-desc">Live migration traffic between hosts. High bandwidth, latency-sensitive. Should never share a VLAN with management or VM traffic.</span></div>
+              <div class="learn-traffic-row"><span class="learn-traffic-name">vSAN</span><span class="learn-traffic-desc">Storage replication between hosts. Very high bandwidth. Dedicated VLAN prevents storage I/O from affecting management or vMotion.</span></div>
+              <div class="learn-traffic-row"><span class="learn-traffic-name">TEP (NSX)</span><span class="learn-traffic-desc">Tunnel Endpoint traffic for NSX overlay networking. Required if you are deploying NSX &mdash; carries all east-west VM traffic over VXLAN/Geneve tunnels.</span></div>
+              <div class="learn-traffic-row"><span class="learn-traffic-name">VM network</span><span class="learn-traffic-desc">Workload VM traffic. Separate from infrastructure traffic so a misbehaving VM can't affect host management.</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="learn-network-security">What is your approach to management network security &mdash; and why?</label>
+            <textarea id="learn-network-security" class="learn-textarea" rows="2" placeholder="e.g. Putting management on a dedicated VLAN with no internet access — only jumpbox can reach it..."></textarea>
+          </div>
+        </div>
+
+        <!-- Port group context cards -->
+        <div class="pg-context-grid">
+          <div class="pg-context-card">
+            <div class="pg-context-card-head">
+              <span class="pg-dot pg-dot-external"></span>
+              External port group
+            </div>
+            <p>Has a <strong>physical uplink</strong> to your home or office network and the internet. Your lab reaches the outside world through this. In a standard ESXi install this is called <code>VM Network</code>. VyOS connects its WAN interface here.</p>
+          </div>
+          <div class="pg-context-card">
+            <div class="pg-context-card-head">
+              <span class="pg-dot pg-dot-internal"></span>
+              Internal lab port group
+            </div>
+            <p><strong>No physical uplink</strong> — traffic stays entirely inside the physical host. All inter-VLAN routing is handled by VyOS. <code>deploy-lab.ps1</code> creates this automatically as <code>Nested-Trunk</code> on a dedicated <code>vSwitch1</code>, set to <code>VLAN 4095</code> (trunk mode) so VyOS receives tagged frames for every VLAN.</p>
+          </div>
+        </div>
+
+        <div id="dc-ip-notice" class="dc-ip-notice" hidden></div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="mgmtCidr">Management CIDR <span class="info-icon">i<span class="info-tooltip">The IP range for all control-plane components: nested ESXi hosts, vCenter, VyOS management interface, and domain controller. Example: 192.168.10.0/24 gives you addresses .1&ndash;.254. Assign static IPs from this range to every lab appliance.</span></span></label>
+            <input type="text" id="mgmtCidr" placeholder="192.168.10.0/24">
+          </div>
+          <div class="field">
+            <label>Management VLAN mode <span class="info-icon">i<span class="info-tooltip">Tagged (best practice): VyOS and each nested ESXi host tag their management traffic with a VLAN ID. The physical port group is always a VLAN 4095 trunk (created automatically), so it's never part of this. Untagged (simpler): management traffic runs on the native VLAN with no tagging &mdash; also the only option non-ESXi lab VMs (DC, jumpbox, workload VMs) can use, since they can't tag VLANs themselves.</span></span></label>
+            <div class="radio-group">
+              <label class="radio-row"><input type="radio" name="mgmtVlanMode" value="untagged" checked><span>Untagged (simpler — VLAN 0)</span></label>
+              <label class="radio-row"><input type="radio" name="mgmtVlanMode" value="tagged"><span>Tagged (best practice)</span></label>
+            </div>
+            <p class="hint" id="mgmt-vlan-hint-untagged">Management traffic runs on the native VLAN over the trunk. VyOS and nested vmk0 both untagged.</p>
+            <p class="hint" id="mgmt-vlan-hint-tagged" hidden>Both layers must use the same VLAN ID: VyOS <code>eth1 vif N</code> and nested vmk0. The physical port group is always a VLAN 4095 trunk, so it's never a factor.</p>
+          </div>
+          <div class="field" id="mgmt-vlan-id-field" hidden>
+            <label for="mgmtVlan">Management VLAN ID <span class="info-icon">i<span class="info-tooltip">The VLAN tag number used by management traffic. Both layers must match: (1) the VyOS sub-interface (eth1.N) and (2) nested vmk0. A mismatch breaks management connectivity.</span></span></label>
+            <input type="number" id="mgmtVlan" min="1" max="4094" placeholder="e.g. 10">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="vmotionCidr">vMotion CIDR <span class="info-icon">i<span class="info-tooltip">The dedicated IP range for live VM migration between nested hosts. Keep this on a separate subnet from management &mdash; vMotion generates high-bandwidth traffic and will compete with management if they share a network.</span></span></label>
+            <input type="text" id="vmotionCidr" placeholder="192.168.11.0/24">
+          </div>
+          <div class="field">
+            <label for="vmotionVlan">vMotion VLAN ID <span class="info-icon">i<span class="info-tooltip">Used for live migration of VMs between nested hosts. Give it a dedicated VLAN and subnet, separate from management, so vMotion traffic cannot saturate the management network during a migration.</span></span></label>
+            <input type="number" id="vmotionVlan" min="0" max="4094" placeholder="optional">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="vmCidr">VM traffic CIDR <span class="info-icon">i<span class="info-tooltip">The network your workload and test VMs connect to. Application VMs will get IPs from this range. VyOS routes traffic between this network and the management network, and provides NAT to the internet.</span></span></label>
+            <input type="text" id="vmCidr" placeholder="192.168.20.0/24">
+          </div>
+          <div class="field">
+            <label for="vmVlan">VM traffic VLAN ID <span class="info-icon">i<span class="info-tooltip">The VLAN your workload VMs use for their network traffic. All VMs on the workload segment will tag their frames with this ID. VyOS must have a matching sub-interface (eth1.N) to route traffic in and out of this segment.</span></span></label>
+            <input type="number" id="vmVlan" min="0" max="4094" placeholder="optional">
+          </div>
+        </div>
+
+        <div class="field-row" id="vsan-network-row" hidden>
+          <div class="field">
+            <label for="vsanCidr">vSAN CIDR <span class="info-icon">i<span class="info-tooltip">The dedicated subnet for vSAN storage traffic between nested hosts. Storage I/O is high-throughput and latency-sensitive &mdash; it must never share a subnet or VLAN with management or vMotion traffic.</span></span></label>
+            <input type="text" id="vsanCidr" placeholder="192.168.12.0/24">
+          </div>
+          <div class="field">
+            <label for="vsanVlan">vSAN VLAN ID <span class="info-icon">i<span class="info-tooltip">Must be a dedicated VLAN entirely separate from management and vMotion. vSAN generates sustained high-bandwidth storage I/O that will starve control-plane traffic if they share a VLAN. Each nested ESXi host gets a vmk adapter on this VLAN specifically for vSAN.</span></span></label>
+            <input type="number" id="vsanVlan" min="0" max="4094" placeholder="optional">
+          </div>
+        </div>
+        <p class="hint" id="vsan-network-hint" hidden>vSAN network appears here because it&rsquo;s switched on in the next step.</p>
+
+        <!-- Merged from old step 14: Security & access -->
+        <hr style="margin:18px 0;border-color:var(--border);">
+        <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em;">Security and remote access</h3>
+
+        <div class="field checkbox-field">
+          <label class="checkbox-row"><input type="checkbox" id="isolateLab"><span>Isolate the lab on its own segment</span></label>
+        </div>
+
+        <div class="field">
+          <label>Firewall policy</label>
+          <div class="choice-row">
+            <label class="choice-pill"><input type="radio" name="firewallPolicy" value="allow_all"><span>Allow all</span></label>
+            <label class="choice-pill"><input type="radio" name="firewallPolicy" value="restricted"><span>Restrict to needed ports</span></label>
+            <label class="choice-pill"><input type="radio" name="firewallPolicy" value="isolated"><span>Fully isolated</span></label>
+          </div>
+        </div>
+
+        <div class="field checkbox-field">
+          <label class="checkbox-row"><input type="checkbox" id="internetAccess"><span>Nested VMs need outbound internet access</span></label>
+        </div>
+
+        <div class="field">
+          <label for="remoteAccessMethod">Remote access method</label>
+          <select id="remoteAccessMethod">
+            <option value="">Select&hellip;</option>
+            <option value="vpn">VPN into the home network</option>
+            <option value="ssh_jump">SSH jump host</option>
+            <option value="none">Local only, no remote access</option>
+            <option value="reverse_proxy">Reverse proxy</option>
+          </select>
+        </div>
+
+        <div class="field" id="vpn-type-field" hidden>
+          <label>VPN type</label>
+          <div class="choice-row">
+            <label class="choice-pill"><input type="radio" name="vpnType" value="wireguard"><span>WireGuard server VM</span></label>
+            <label class="choice-pill"><input type="radio" name="vpnType" value="vyos_site_to_site"><span>VyOS site-to-site</span></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="vcenterSize">vCenter deployment size</label>
+          <select id="vcenterSize">
+            <option value="">Select&hellip;</option>
+            <option value="tiny">Tiny &mdash; up to 10 VMs</option>
+            <option value="small">Small &mdash; up to 100 VMs</option>
+            <option value="medium">Medium &mdash; up to 400 VMs</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Step 8: Nested cluster (mega-step: also absorbs Deployment placement, Nested disks, Bundle depot, VCF Bring-up) -->
+      <section class="step" data-step="8">
+        <h1>Size the nested cluster</h1>
+        <p class="step-intro">The wizard checks this against the physical RAM and CPU from step 2.</p>
+
+        <div class="learn-block" data-learn-step="8">
+          <div class="learn-context">
+            <p>Cluster design involves balancing three things that often conflict: <strong>availability</strong> (more hosts = more resilience), <strong>resource headroom</strong> (more VMs need more capacity), and <strong>cost</strong> (more hosts = more hardware). There is no universally right answer &mdash; it depends on your use case.</p>
+            <div id="learn-ram-headroom" class="learn-insight" hidden></div>
+          </div>
+          <div class="field">
+            <label for="learn-availability-req">What availability requirement are you designing for?</label>
+            <select id="learn-availability-req" class="learn-select">
+              <option value="">Select&hellip;</option>
+              <option value="devtest">Dev/test &mdash; no HA needed, single host acceptable</option>
+              <option value="learning">Learning &mdash; basic HA configured, 2&ndash;3 hosts</option>
+              <option value="productionlike">Production-like &mdash; full HA + DRS, minimum 3 hosts</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="sizing-recommendations" hidden>
+          <div class="field">
+            <label>Recommended cluster sizes for your hardware</label>
+            <div id="sizing-tier-grid" class="sizing-tier-grid"></div>
+            <p class="hint" id="sizing-tier-hint">Based on: min. 8&nbsp;GB vRAM/nested host &middot; 14&nbsp;GB vCenter Tiny &middot; 4&nbsp;GB DC &middot; 1&nbsp;GB VyOS &middot; 4&nbsp;GB ESXi overhead. Click a tier to apply it.</p>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="nestedHostCount">Nested ESXi hosts</label>
+            <input type="number" id="nestedHostCount" min="1" max="12" value="3">
+            <p class="hint hint-info" id="host-count-vcf-note" hidden>VCF management domain designs typically need 4 hosts (3 minimum with vSAN ESA). Worth knowing now if you might layer VCF on top later.</p>
+          </div>
+          <div class="field">
+            <label for="vcpuPerHost">vCPU per host</label>
+            <input type="number" id="vcpuPerHost" min="1" value="4">
+          </div>
+          <div class="field">
+            <label for="vramPerHostGB">vRAM per host (GB)</label>
+            <input type="number" id="vramPerHostGB" min="1" max="2048" value="16">
+            <p id="vram-min-warning" class="hint hint-warning" hidden></p>
+          </div>
+          <div class="field">
+            <label for="nestedDiskGB">Boot disk per host (GB)</label>
+            <input type="number" id="nestedDiskGB" min="8" max="2048" value="32">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Deploy nested ESXi from</label>
+          <div class="radio-grid" id="esxi-deploy-method-options">
+            <label class="radio-card"><input type="radio" name="esxiDeployMethod" value="ova" checked><span class="radio-card-title">William Lam OVA</span><span class="radio-card-sub">Pre-built appliance &mdash; fully automated, faster</span></label>
+            <label class="radio-card"><input type="radio" name="esxiDeployMethod" value="iso"><span class="radio-card-title">ESXi ISO</span><span class="radio-card-sub">Interactive install &mdash; teaches the full process</span></label>
+          </div>
+          <p class="hint hint-info" id="esxi-ova-hint">William Lam's <strong>Nested ESXi Virtual Appliance</strong> — ESXi pre-installed, configured via OVF properties (hostname, IP, credentials). No manual install. Download for your version at <a href="https://williamlam.com/nested-virtualization/nested-esxi-virtual-appliance" target="_blank" rel="noopener">williamlam.com/nested-virtualization</a>. ESXi 8.x is free with a Broadcom account; 9.x requires a VCF/VVF subscription.</p>
+          <p class="hint" id="esxi-iso-hint" hidden>Standard ESXi ISO install. The script creates VM shells and attaches the ISO; you run through the ESXi installer on each host manually.</p>
+        </div>
+
+        <div class="field checkbox-field">
+          <label class="checkbox-row"><input type="checkbox" id="vsanEnabled"><span>Enable vSAN on this cluster</span></label>
+          <p class="hint">Needs at least 3 nested hosts to behave like a real vSAN cluster.</p>
+        </div>
+
+        <div id="vsan-arch-field" hidden>
+          <div class="field">
+            <label>vSAN storage architecture</label>
+            <div class="radio-group">
+              <label class="radio-row"><input type="radio" name="vsanArch" value="esa" checked><span>ESA — Express Storage Architecture (recommended)</span></label>
+              <label class="radio-row"><input type="radio" name="vsanArch" value="osa"><span>OSA — Original Storage Architecture (legacy)</span></label>
+            </div>
+            <p class="hint" id="vsan-esa-hint">ESA is the current architecture: single storage tier, no cache/capacity split, requires all-flash (NVMe or fast SSD). OSA is being phased down in favour of ESA.</p>
+            <p class="hint" id="vsan-osa-hint" hidden>OSA uses a two-tier design: cache (SSD/NVMe) + capacity (any disk). Use this only if your storage can't meet ESA requirements.</p>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="clusterName">vSphere cluster name</label>
+            <input type="text" id="clusterName" value="mgmt-cluster">
+            <p class="hint">Used in all generated scripts. If you might layer VCF on top later, keep a professional name now — <code>mgmt-cluster</code> matches the VCF reference architecture.</p>
+          </div>
+          <div class="field">
+            <label for="ssoDomain">vCenter SSO domain</label>
+            <input type="text" id="ssoDomain" value="vsphere.local">
+            <p class="hint">Keep this distinct from your Active Directory domain. Colliding SSO and AD domain names have caused real VCF bring-up failures.</p>
+            <p class="hint hint-warning" id="sso-collision-warning" hidden>SSO domain matches or overlaps with the AD domain. Use a clearly distinct SSO domain (e.g. <code>vsphere.local</code>) and a separate AD domain (e.g. <code>lab.company.com</code>).</p>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="nestedEsxiPassword">Nested ESXi root password</label>
+            <input type="password" id="nestedEsxiPassword" placeholder="Leave blank to use &lt;REPLACE_ME&gt; placeholder">
+            <p class="hint">Written into the generated Kickstart files (<code>ks-esxi-01.cfg</code>, etc.) for unattended ESXi installation. If left blank, the ks.cfg files will contain a <code>&lt;REPLACE_ME&gt;</code> placeholder and the installer will prompt you. Avoid special shell characters (<code>$ ' " \</code>).</p>
+          </div>
+        </div>
+
+        <div class="field checkbox-field">
+          <label class="checkbox-row"><input type="checkbox" id="legacyCpuCompat"><span>Apply legacy CPU compatibility (<code>monitor.allowLegacyCPU</code>)</span></label>
+          <p class="hint">Needed on some older host CPUs for nested ESXi to boot. Safe to enable even if you're not sure.</p>
+        </div>
+
+        <div class="field checkbox-field">
+          <label class="checkbox-row"><input type="checkbox" id="memTieringEnabled"><span>Configure NVMe-based memory tiering</span></label>
+          <p class="hint">Adds a virtual NVMe disk to each nested host and generates a <code>configure-memory-tiering.ps1</code> script. Useful for practising the ESXi 8 memory tiering feature. The NVMe is virtual — no real performance benefit, but the config workflow is identical.</p>
+        </div>
+
+        <div id="mem-tiering-fields" hidden>
+          <div class="field">
+            <label for="nvmeSizeGB">Virtual NVMe tier disk size per host (GB)</label>
+            <input type="number" id="nvmeSizeGB" min="10" max="2000" value="100">
+            <p class="hint">Size of the virtual NVMe VMDK added to each nested ESXi host VM. This is separate from vSAN disks — memory tiering uses its own dedicated NVMe device inside the nested host.</p>
+          </div>
+          <div class="field">
+            <label>Which physical datastore to place the tier VMDKs on? <span class="hint" style="font-size:11px;">(optional)</span></label>
+            <div id="nvme-disk-options" class="nvme-disk-options"></div>
+            <p id="nvme-disk-warning" class="hint" style="color:var(--danger);" hidden>
+              No NVMe devices found in your hardware inventory — the generated script will use whichever datastore you specify at run time.
+            </p>
+          </div>
+          <div class="field">
+            <label for="tierNvmePct">Memory tier percentage (%)</label>
+            <input type="number" id="tierNvmePct" min="1" max="400" value="25">
+            <p class="hint">Percentage of host RAM to back with the NVMe tier. VMware supports up to 4&times; DRAM (400%).</p>
+          </div>
+        </div>
+
+        <div id="resource-tips-panel" class="resource-tips-panel" hidden>
+          <div class="resource-tips-header">
+            <span>Resource saving tips</span>
+            <span id="resource-tips-subtitle" class="resource-tips-subtitle"></span>
+          </div>
+          <div id="resource-tips-list"></div>
+        </div>
+
+        <!-- Merged from old step 8: Deployment placement -->
+        <hr style="margin:18px 0;border-color:var(--border);">
+        <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em;">Deployment placement</h3>
+        <p class="hint" style="margin-bottom:14px;">Assign each VM to a physical host. Only relevant when you have two or more physical ESXi hosts &mdash; with a single host everything deploys to it automatically.</p>
+
+        <div id="placement-singlehost-notice" hidden>
+          <p class="hint">You have a single physical host &mdash; all VMs will deploy to it automatically. Continue to the next step.</p>
+        </div>
+
+        <div id="placement-multihost-content" hidden>
+
+          <div id="infra-placement-section" hidden>
+            <div class="field">
+              <label>Infrastructure VMs</label>
+              <div id="infra-placement-rows"></div>
+            </div>
+          </div>
+
+          <div id="placement-section" hidden>
+            <div class="field">
+              <label>Nested ESXi hosts</label>
+              <div class="radio-group">
+                <label class="radio-row"><input type="radio" name="nestedHostPlacement" value="auto" checked><span>Automatic &mdash; distribute evenly (round-robin)</span></label>
+                <label class="radio-row"><input type="radio" name="nestedHostPlacement" value="manual"><span>Manual &mdash; assign each nested host myself</span></label>
+              </div>
+            </div>
+            <div id="manual-placement-rows" hidden></div>
+          </div>
+
+          <div class="field">
+            <label>Physical host RAM allocation</label>
+            <div id="placement-ram-summary"></div>
+          </div>
+
+          <p class="hint">vCenter deploys onto nested-esxi-01 after that host is running &mdash; no physical host selection needed for it.</p>
+
+        </div>
+
+        <!-- Merged from old step 11: Nested host disk layout -->
+        <hr style="margin:18px 0;border-color:var(--border);">
+        <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em;">Nested host disk layout</h3>
+        <p class="hint" style="margin-bottom:14px;">Virtual disks added to each nested ESXi host VM on top of the boot disk. Purpose options adapt to the vSAN architecture chosen above.</p>
+
+        <p id="vsan-esa-nvme-warn" class="hint" style="color:var(--warn);margin-bottom:14px;" hidden>
+          vSAN ESA requires NVMe-backed storage — no NVMe device found in your hardware inventory. Go back to Hardware (step 1) to add one, or switch to OSA above, which supports any disk type.
+        </p>
+
+        <div class="field">
+          <p class="hint">Add one entry per disk role. vSAN disks are added to every nested host; the local datastore disk goes to host 1 only. Leave blank if your nested hosts only need a boot disk.</p>
+          <div id="nested-disk-list"></div>
+          <button type="button" id="add-nested-disk" class="btn btn-secondary" style="margin-top:4px;font-size:12.5px;padding:7px 12px;">+ Add disk</button>
+        </div>
+
+        <!-- Merged from old step 12: Bundle depot (conditional — shown only when vSAN + local datastore both configured; toggled live by updateDepotVisibility()) -->
+        <div id="nested-cluster-depot-section" hidden>
+          <hr style="margin:18px 0;border-color:var(--border);">
+          <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em;">VCF bundle depot?</h3>
+          <p class="hint" style="margin-bottom:14px;">A local HTTPS file server hosting VCF bundles on your LAN. During VCF bring-up, SDDC Manager downloads bundles from Broadcom's CDN — a local depot gives LAN-speed downloads instead and enables air-gapped deployments.</p>
+
+          <div class="field checkbox-field">
+            <label class="checkbox-row"><input type="checkbox" id="depotEnabled"><span>Deploy a local bundle depot for VCF offline deployments</span></label>
+            <p class="hint hint-info">This sets up the depot server infrastructure only. Downloading the actual VCF bundles from Broadcom's portal and populating the depot is a manual step covered in <code>depot-instructions.md</code>. VCF bring-up itself is out of scope for v1 of this wizard.</p>
+          </div>
+
+          <div id="depot-fields" hidden>
+            <div class="field">
+              <label>Deployment option</label>
+              <div class="radio-group">
+                <label class="radio-row"><input type="radio" name="depotMode" value="linux" checked><span>Dedicated Linux VM with nginx (recommended)</span></label>
+                <label class="radio-row"><input type="radio" name="depotMode" value="iis"><span>Use the existing DC with IIS (saves a VM — requires domain controller)</span></label>
+              </div>
+              <p class="hint" id="depot-linux-hint">Small Ubuntu VM: 2 vCPU / 4GB RAM / 100GB disk on host 1's local datastore. nginx serves bundles over HTTPS with a self-signed cert. Generates <code>depot-deploy.ps1</code> and <code>depot-configure.sh</code>.</p>
+              <p class="hint" id="depot-iis-hint" hidden>Installs IIS on the existing domain controller and configures HTTPS using a Windows self-signed cert. No extra VM needed. Generates <code>depot-iis.ps1</code>.</p>
+              <p class="hint hint-warning" id="depot-iis-no-dc-warning" hidden>IIS mode requires a domain controller — enable the DC in step 4 or switch to Linux/nginx mode.</p>
+            </div>
+
+            <div class="field">
+              <label for="depotIpAddress">Depot IP address</label>
+              <input type="text" id="depotIpAddress" placeholder="e.g. 192.168.10.20">
+              <p class="hint">Must be in the management network range. Used in the depot URL: <code>https://&lt;ip&gt;/depot/</code></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Merged from old step 10: VCF Bring-up -->
+        <hr style="margin:18px 0;border-color:var(--border);">
+        <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em;">VCF bring-up spec</h3>
+        <p class="hint" style="margin-bottom:14px;">VMware Cloud Foundation uses a Cloud Builder appliance to orchestrate the full management domain deployment &mdash; vCenter, NSX-T, and SDDC Manager all installed and configured from a single JSON file. Enable this to generate that file alongside the standard lab scripts.</p>
+
+        <div class="field checkbox-field">
+          <label class="checkbox-row"><input type="checkbox" id="vcfEnabled"><span>Generate VCF bring-up JSON for Cloud Builder</span></label>
+          <p class="hint">This produces <code>vcf-bringup.json</code> ready to upload to Cloud Builder. The standard deploy scripts are still generated alongside it &mdash; use whichever path suits your goals.</p>
+        </div>
+
+        <div id="vcf-fields" hidden>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="vcfSddcMgrIp">SDDC Manager IP <span class="info-icon">i<span class="info-tooltip">The static IP address Cloud Builder will assign to SDDC Manager during bring-up. Must be in the management network range and not already in use.</span></span></label>
+              <input type="text" id="vcfSddcMgrIp" placeholder="e.g. 192.168.10.6">
+            </div>
+            <div class="field">
+              <label for="vcfSddcMgrHostname">SDDC Manager hostname</label>
+              <input type="text" id="vcfSddcMgrHostname" value="sddcmgr" placeholder="sddcmgr">
+              <p class="hint">Short hostname, not FQDN. Cloud Builder appends the domain automatically.</p>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="vcfVcenterIp">vCenter IP <span class="info-icon">i<span class="info-tooltip">Static IP VCF will assign to vCenter Server during bring-up. Must be pre-allocated in your management network and not already in use. VCF deploys vCenter itself &mdash; you do not run the vcenter-deploy.ps1 script in VCF mode.</span></span></label>
+              <input type="text" id="vcfVcenterIp" placeholder="e.g. 192.168.10.40">
+            </div>
+          </div>
+
+          <hr style="margin:18px 0;border-color:var(--border);">
+          <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em;">VCF-specific networks</h3>
+          <p class="hint" style="margin-bottom:14px;">These networks are required by VCF and are separate from the lab networks defined in step 5. Add them to your physical switch trunk and define CIDRs that do not overlap with any of your existing ranges.</p>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="vcfVtepCidr">NSX VTEP CIDR <span class="info-icon">i<span class="info-tooltip">The Tunnel Endpoint (TEP) network carries NSX overlay traffic (Geneve encapsulation) between hosts. VCF assigns one or two TEP IPs per host from this range. Recommend /24, MTU 9000.</span></span></label>
+              <input type="text" id="vcfVtepCidr" placeholder="192.168.13.0/24">
+            </div>
+            <div class="field">
+              <label for="vcfVtepVlan">NSX VTEP VLAN ID</label>
+              <input type="number" id="vcfVtepVlan" min="1" max="4094" placeholder="e.g. 13">
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="vcfEdgeUplink1Cidr">NSX Edge Uplink 1 CIDR <span class="info-icon">i<span class="info-tooltip">The primary uplink network for NSX Edge nodes. North-south routed traffic between NSX T0 and the physical network (VyOS) flows over this VLAN. Standard MTU (1500) unless your upstream supports jumbo frames.</span></span></label>
+              <input type="text" id="vcfEdgeUplink1Cidr" placeholder="192.168.14.0/24">
+            </div>
+            <div class="field">
+              <label for="vcfEdgeUplink1Vlan">Edge Uplink 1 VLAN ID</label>
+              <input type="number" id="vcfEdgeUplink1Vlan" min="1" max="4094" placeholder="e.g. 14">
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="vcfEdgeUplink2Cidr">NSX Edge Uplink 2 CIDR <span class="hint-inline" style="font-weight:400;color:var(--text-muted);font-size:12px;">(optional)</span> <span class="info-icon">i<span class="info-tooltip">Secondary uplink for Edge HA. Required if you want both Edge nodes to have independent north-south paths. Leave blank for a single uplink lab design.</span></span></label>
+              <input type="text" id="vcfEdgeUplink2Cidr" placeholder="192.168.15.0/24">
+            </div>
+            <div class="field">
+              <label for="vcfEdgeUplink2Vlan">Edge Uplink 2 VLAN ID <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(optional)</span></label>
+              <input type="number" id="vcfEdgeUplink2Vlan" min="1" max="4094" placeholder="e.g. 15">
+            </div>
+          </div>
+
+          <hr style="margin:18px 0;border-color:var(--border);">
+          <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em;">Credentials &amp; licenses</h3>
+
+          <div class="field">
+            <label for="vcfEsxiPassword">ESXi host root password</label>
+            <input type="password" id="vcfEsxiPassword" placeholder="Temporary bring-up password">
+            <p class="hint hint-warning">This password appears in plaintext in <code>vcf-bringup.json</code>. Use a temporary password and rotate it immediately after Cloud Builder completes.</p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="vcfEsxiLicense">ESXi license key <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(optional)</span></label>
+              <input type="text" id="vcfEsxiLicense" placeholder="Leave blank for 60-day eval">
+              <p class="hint">VCF/VVF subscription key, or leave blank for evaluation mode.</p>
+            </div>
+            <div class="field">
+              <label for="vcfVcenterLicense">vCenter license key <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(optional)</span></label>
+              <input type="text" id="vcfVcenterLicense" placeholder="Leave blank for 60-day eval">
+            </div>
+          </div>
+
+          <div class="notice-block notice-info" style="margin-top:8px;">
+            <strong>VCF vs standard scripts:</strong> In VCF mode, Cloud Builder deploys vCenter, NSX-T, and SDDC Manager. Do not run <code>vcenter-deploy.ps1</code>, <code>vsan-cluster.ps1</code>, or <code>nsx-deploy.ps1</code> — VCF handles all of that. Run <code>deploy-lab.ps1</code> first to create the nested ESXi VMs, then hand off to Cloud Builder.
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Step 9: NSX-T (standalone — not merged with anything, by explicit decision) -->
+      <section class="step" data-step="9">
+        <h1>Add NSX-T to this lab?</h1>
+        <p class="step-intro">NSX-T adds software-defined networking, micro-segmentation, and optional BGP routing on top of the vSphere cluster. Deployment is after the cluster is healthy.</p>
+
+        <div class="learn-block" data-learn-step="9">
+          <div class="learn-context">
+            <p>NSX adds significant capability &mdash; micro-segmentation, overlay networking, distributed routing &mdash; but also significant complexity and resource overhead. Before choosing NSX, be clear on why you need it.</p>
+            <div class="learn-reasons">
+              <div class="learn-reason-item">&#10003; Learning NSX for certification (VCP-VCF Admin, VCP-VCF Architect, VCAP Networking)</div>
+              <div class="learn-reason-item">&#10003; Practising micro-segmentation for a customer project</div>
+              <div class="learn-reason-item">&#10003; Building a full VCF environment</div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="learn-nsx-rationale">What is driving your decision to include NSX?</label>
+            <textarea id="learn-nsx-rationale" class="learn-textarea" rows="2" placeholder="e.g. Studying for VCP-VCF Admin exam, need to practice DFW rule creation and T0/T1 gateway config..."></textarea>
+          </div>
+        </div>
+
+        <div class="field checkbox-field">
+          <label class="checkbox-row"><input type="checkbox" id="nsxEnabled"><span>Deploy NSX-T Manager for this lab</span></label>
+          <p class="hint">NSX Manager deploys as a VM on the cluster. Small size works for most labs.</p>
+        </div>
+
+        <div id="nsx-fields" hidden>
+          <div class="field-row">
+            <div class="field">
+              <label>NSX Manager size <span class="info-icon">i<span class="info-tooltip">Small is sufficient for all lab and POC work. Medium is for small production environments. The difference is resource reservation &mdash; Small uses 3 vCPU and 12 GB RAM, Medium uses 6 vCPU and 24 GB RAM per node. The wizard&rsquo;s sizing check includes this in total RAM calculations.</span></span></label>
+              <div class="radio-group">
+                <label class="radio-row"><input type="radio" name="nsxSize" value="small" checked><span>Small &mdash; 3 vCPU / 12GB RAM (lab/POC)</span></label>
+                <label class="radio-row"><input type="radio" name="nsxSize" value="medium"><span>Medium &mdash; 6 vCPU / 24GB RAM (small production)</span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Gateway topology <span class="info-icon">i<span class="info-tooltip">T0 (Tier-0) is the north-south gateway &mdash; it connects your NSX overlay to the physical network via VyOS or a physical router. T1 (Tier-1) is the tenant gateway &mdash; it connects logical segments to the T0. DFW (Distributed Firewall) enforces micro-segmentation rules at the vNIC level on every VM, regardless of which host it&rsquo;s on.</span></span></label>
+            <div class="radio-group">
+              <label class="radio-row"><input type="radio" name="nsxTopology" value="T0T1" checked><span>T0 + T1 Gateways only</span></label>
+              <label class="radio-row"><input type="radio" name="nsxTopology" value="T0T1DFW"><span>T0 + T1 Gateways + Distributed Firewall (DFW)</span></label>
+              <label class="radio-row"><input type="radio" name="nsxTopology" value="full"><span>Full &mdash; T0 / T1 / DFW + NSX Advanced LB profile</span></label>
+            </div>
+            <p class="hint hint-info" id="nsx-vcf-note">For VCF: NSX must be configured to Broadcom&rsquo;s BOM sizing and topology requirements. This lab topology is suitable for learning and practice, not for a VCF management domain bring-up.</p>
+          </div>
+
+          <div class="field-row" style="margin-top:4px;">
+            <div class="field">
+              <label>Edge transport nodes <span class="info-icon">i<span class="info-tooltip">Edge transport nodes host the T0/T1 datapath and BGP sessions. They are separate VMs from NSX Manager and must be deployed from the NSX UI after NSX Manager is up. For labs, a single edge node is sufficient; 2 nodes give an HA pair closer to production topology.</span></span></label>
+              <div class="radio-group">
+                <label class="radio-row"><input type="radio" name="nsxEdgeCount" value="1" checked><span>1 node &mdash; single edge (saves 4&ndash;32 GB RAM, fine for lab routing)</span></label>
+                <label class="radio-row"><input type="radio" name="nsxEdgeCount" value="2"><span>2 nodes &mdash; HA pair (simulates production redundancy)</span></label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="nsxEdgeSize">Edge node size <span class="info-icon tip-left">i<span class="info-tooltip">Small (2 vCPU / 4 GB) handles lab routing and BGP. Medium (4 vCPU / 8 GB) supports more concurrent flows and LB instances. Large (8 vCPU / 32 GB) for Edge performance testing.</span></span></label>
+              <select id="nsxEdgeSize">
+                <option value="small">Small &mdash; 2 vCPU / 4 GB RAM</option>
+                <option value="medium" selected>Medium &mdash; 4 vCPU / 8 GB RAM</option>
+                <option value="large">Large &mdash; 8 vCPU / 32 GB RAM</option>
+              </select>
+              <p class="hint">Edge cluster is created by the configure script after you deploy the edge node(s) from the NSX UI.</p>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="nsxIpAddress">NSX Manager IP address <span class="info-icon tip-left">i<span class="info-tooltip">Must be a static IP in your management network range (configured in the Lab networks step). This is the IP you&rsquo;ll browse to for the NSX Manager web UI and API. It must be reachable from your management subnet.</span></span></label>
+              <input type="text" id="nsxIpAddress" placeholder="e.g. 192.168.10.30">
+              <p class="hint">Must be in the management network range. Used in generated scripts.</p>
+            </div>
+          </div>
+
+          <div id="nsx-bgp-section" class="field" hidden>
+            <label>BGP peering (VyOS detected in BGP mode) <span class="info-icon">i<span class="info-tooltip">BGP (Border Gateway Protocol) dynamically exchanges routes between NSX T0 and VyOS. When enabled, the NSX T0 gateway will advertise overlay segment prefixes to VyOS, and VyOS will advertise a default route to T0. Both sides must agree on each other&rsquo;s AS number.</span></span></label>
+            <div class="field-row">
+              <div class="field">
+                <label for="nsxBgpLocalAs">NSX T0 AS number <span class="info-icon">i<span class="info-tooltip">The BGP Autonomous System number for the NSX T0 gateway. Use a private ASN in the 64512&ndash;65534 range for labs. VyOS must be configured with this as its &ldquo;remote-as&rdquo; when peering with NSX.</span></span></label>
+                <input type="number" id="nsxBgpLocalAs" min="1" max="65535" value="65001">
+              </div>
+              <div class="field">
+                <label for="nsxBgpPeerAs">VyOS AS number <span class="info-icon">i<span class="info-tooltip">The BGP AS number assigned to VyOS. NSX T0 will peer with this AS. Must match the &ldquo;local-as&rdquo; configured on VyOS and the &ldquo;remote-as&rdquo; value set on the NSX T0 BGP neighbour entry.</span></span></label>
+                <input type="number" id="nsxBgpPeerAs" min="1" max="65535" value="65002">
+              </div>
+            </div>
+            <p class="hint">NSX T0 (AS 65001) will peer with VyOS (AS 65002). These are auto-populated from the VyOS BGP selection. Adjust if you use different ASNs.</p>
+
+            <div class="field" style="margin-top:14px;">
+              <label>Route advertisement <span class="info-icon">i<span class="info-tooltip">Controls which NSX prefixes are advertised to VyOS via BGP. &ldquo;All connected&rdquo; advertises every overlay segment attached to T0/T1. &ldquo;Specific prefixes&rdquo; adds a BGP prefix list so only the listed CIDRs are sent to VyOS &mdash; useful if you want finer control over what is reachable upstream.</span></span></label>
+              <div class="radio-group">
+                <label class="radio-row"><input type="radio" name="nsxBgpRouteAdvert" value="all" checked><span>Advertise all connected overlay segments</span></label>
+                <label class="radio-row"><input type="radio" name="nsxBgpRouteAdvert" value="specific"><span>Advertise specific prefixes only (BGP prefix list)</span></label>
+              </div>
+            </div>
+
+            <div id="nsx-bgp-prefix-fields" hidden>
+              <label for="nsxBgpPrefixes">Prefixes to advertise (one per line, CIDR)</label>
+              <textarea id="nsxBgpPrefixes" rows="3" style="width:100%;margin-top:6px;font-family:monospace;font-size:12.5px;padding:8px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);resize:vertical;" placeholder="10.0.1.0/24&#10;10.0.2.0/24"></textarea>
+              <p class="hint">These CIDRs are added as a BGP outbound prefix list on the T0 gateway and applied to the VyOS neighbour.</p>
+            </div>
+
+            <div class="field" style="margin-top:12px;">
+              <label>Redistribute into BGP <span class="info-icon">i<span class="info-tooltip">Route redistribution controls which internal NSX routes are injected into the BGP table and then advertised to VyOS. Connected routes (T0+T1) is the most common choice and lets VyOS reach overlay workloads. Enable T1 LB VIPs if you use NSX Advanced Load Balancer.</span></span></label>
+              <label class="checkbox-row"><input type="checkbox" id="nsxRedistConnected" checked><span>Connected routes &mdash; T0 + T1 directly attached segments</span></label>
+              <label class="checkbox-row"><input type="checkbox" id="nsxRedistStatic"><span>Static routes configured on T0</span></label>
+              <label class="checkbox-row"><input type="checkbox" id="nsxRedistT1Lb"><span>T1 load balancer VIPs (NSX Advanced LB)</span></label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 10: Workload VMs -->
+      <section class="step" data-step="10">
+        <h1>Deploy test workload VMs?</h1>
+        <p class="step-intro">Blank VM shells on the cluster for practising vMotion, DRS, and HA — no OS required, but you can install one later.</p>
+
+        <div class="field checkbox-field">
+          <label class="checkbox-row"><input type="checkbox" id="workloadVmsEnabled"><span>Deploy test workload VMs after the cluster is built</span></label>
+          <p class="hint">Generates a deploy-workloads.ps1 script that runs after vSAN is healthy. VMs have no OS but are useful for DRS/HA/vMotion practice.</p>
+        </div>
+
+        <div id="workload-fields" hidden>
+          <div class="field-row">
+            <div class="field">
+              <label for="workloadVmCount">Number of VMs</label>
+              <input type="number" id="workloadVmCount" min="1" max="50" value="3">
+            </div>
+            <div class="field">
+              <label>VM size</label>
+              <div class="choice-row">
+                <label class="choice-pill"><input type="radio" name="workloadVmSize" value="small"><span>Small &mdash; 2 vCPU / 4GB</span></label>
+                <label class="choice-pill"><input type="radio" name="workloadVmSize" value="medium"><span>Medium &mdash; 4 vCPU / 8GB</span></label>
+              </div>
+            </div>
+          </div>
+          <p class="hint" id="workload-sizing-note"></p>
+        </div>
+      </section>
+
+      <!-- Step 11: Review & generate -->
+      <section class="step" data-step="11">
+        <h1>Review and generate</h1>
+        <p class="step-intro">Checks out? Generate the spec, deployment scripts, and the design doc.</p>
+
+        <div id="review-summary" class="review-summary"></div>
+
+        <!-- Live network diagram preview -->
+        <div id="review-diagram-section" class="review-diagram-section" hidden>
+          <div class="review-diagram-header">
+            <h2>Network diagram</h2>
+            <a href="/diagram" target="_blank" rel="noopener" class="review-diagram-open">Open in viewer &rarr;</a>
+          </div>
+          <div id="review-diagram-wrap" class="review-diagram-wrap">
+            <div id="review-diagram-inner" class="review-diagram-inner"></div>
+            <div id="review-diagram-empty" class="review-diagram-empty">Rendering&hellip;</div>
+          </div>
+        </div>
+
+        <div id="review-placement-section" hidden>
+          <h3 class="review-section-heading">Deployment targets</h3>
+          <div class="review-placement-body"></div>
+        </div>
+
+        <div class="learn-block" data-learn-step="11">
+          <div class="learn-scorecard-wrap">
+            <h2 class="learn-scorecard-title">Architecture Review</h2>
+            <p class="learn-scorecard-intro">Your design rationale will be included in your design document &mdash; this is what separates a spec from a proper design.</p>
+            <div id="learn-scorecard" class="learn-scorecard"></div>
+            <div id="learn-antipatterns" class="learn-antipatterns" hidden></div>
+          </div>
+        </div>
+
+        <div id="generate-error-block" class="generate-error-block" hidden></div>
+
+        <div class="generate-actions">
+          <button type="button" id="btn-generate" class="btn btn-primary">Generate lab design</button>
+          <button type="button" id="btn-export-template" class="btn btn-secondary">Export as template</button>
+        </div>
+
+        <div id="results" class="results" hidden>
+          <div id="warnings-block" class="warnings-block" hidden></div>
+
+          <div id="arch-readiness-banner" class="arch-readiness-banner" hidden>
+            <div class="arch-readiness-label">Architect Design Document</div>
+            <div id="arch-readiness-score" class="arch-readiness-score"></div>
+            <div class="arch-readiness-hint">10-section design document ready. Download <strong>design-doc.md</strong> below.</div>
+          </div>
+
+          <div class="downloads" id="downloads"></div>
+
+          <h2 id="markdown-preview-heading">Design doc preview</h2>
+          <pre id="markdown-preview" class="markdown-preview"></pre>
+        </div>
+      </section>
+
+      <!-- Step 12: Troubleshooting Lab (hidden — activate with Cmd+Shift+X / Ctrl+Shift+X) -->
+      <section class="step" data-step="12">
+        <h1>Troubleshooting Lab</h1>
+
+        <!-- Mode tabs -->
+        <div class="ts-mode-tabs" id="ts-mode-tabs">
+          <button type="button" class="ts-mode-tab active" id="ts-tab-library" data-mode="library">Scenario Library</button>
+          <button type="button" class="ts-mode-tab" id="ts-tab-studyplan" data-mode="studyplan">Study Plan</button>
+          <button type="button" class="ts-mode-tab" id="ts-tab-session" data-mode="session">Troubleshooter</button>
+        </div>
+
+        <!-- ── ADMIN: Scenario Library ─────────────────────────────────── -->
+        <div id="ts-library-panel" class="ts-panel">
+
+          <!-- Active scenario banner -->
+          <div id="ts-active-banner" class="ts-active-banner" hidden>
+            <span id="ts-active-label"></span>
+            <button type="button" class="ts-unload-btn" id="ts-unload-btn">Unload</button>
+          </div>
+
+          <!-- Toolbar -->
+          <div class="ts-lib-toolbar">
+            <input type="text" id="ts-lib-search" class="ts-lib-search" placeholder="Search scenarios&hellip;">
+            <select id="ts-lib-filter-diff" class="ts-lib-filter">
+              <option value="">All difficulties</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+            <select id="ts-lib-filter-topic" class="ts-lib-filter">
+              <option value="">All topics</option>
+            </select>
+            <div style="flex:1"></div>
+            <button type="button" class="btn btn-secondary btn-sm" id="ts-vcenter-settings-btn" title="vCenter connection settings">&#9881; vCenter</button>
+            <label class="btn btn-secondary" style="cursor:pointer;">
+              Import .labscenario
+              <input type="file" id="ts-import-file" accept=".labscenario,.json" style="display:none;">
+            </label>
+            <button type="button" class="btn btn-primary" id="ts-new-scenario-btn">+ New Scenario</button>
+          </div>
+
+          <!-- vCenter connection settings panel (hidden by default) -->
+          <div id="ts-vcenter-settings" class="ts-vcenter-settings" hidden>
+            <h3 class="ts-build-section-heading" style="margin:0 0 10px">vCenter Connection</h3>
+            <p class="hint" style="margin-bottom:12px">Used to revert snapshots automatically when a scenario is loaded. Credentials are stored in <code>vcenter-config.json</code> next to the wizard executable and are never committed to git.</p>
+            <div class="ts-vcenter-grid">
+              <label class="form-label">vCenter Server
+                <input type="text" id="vc-server" class="ts-snapshot-input" placeholder="vcsa.lab.local or 192.168.1.10">
+              </label>
+              <label class="form-label">Username
+                <input type="text" id="vc-user" class="ts-snapshot-input" placeholder="administrator@vsphere.local">
+              </label>
+              <label class="form-label">Password
+                <input type="password" id="vc-password" class="ts-snapshot-input" placeholder="leave blank to keep saved">
+              </label>
+              <label class="form-label ts-vcenter-insecure">
+                <input type="checkbox" id="vc-insecure"> Trust self-signed certificate
+              </label>
+            </div>
+            <div class="ts-vcenter-btns">
+              <button type="button" class="btn btn-secondary btn-sm" id="vc-test-btn">Test Connection</button>
+              <button type="button" class="btn btn-primary btn-sm" id="vc-save-btn">Save</button>
+              <span id="vc-status" class="hint" style="margin-left:10px"></span>
+            </div>
+          </div>
+
+          <!-- Cert relevance filter chips -->
+          <div class="ts-cert-filter-row" id="ts-cert-filter-row">
+            <span class="ts-cert-filter-label">Cert:</span>
+            <button type="button" class="ts-cert-chip active" data-cert="">All</button>
+            <button type="button" class="ts-cert-chip" data-cert="VCP-VCF-Architect">VCP-VCF Architect</button>
+            <button type="button" class="ts-cert-chip" data-cert="VCP-VCF-Admin">VCP-VCF Admin</button>
+            <button type="button" class="ts-cert-chip" data-cert="VCP-VCF-Support">VCP-VCF Support</button>
+            <button type="button" class="ts-cert-chip" data-cert="VCP-VVF-Admin">VCP-VVF Admin</button>
+            <button type="button" class="ts-cert-chip" data-cert="VCP-VVF-Support">VCP-VVF Support</button>
+            <button type="button" class="ts-cert-chip" data-cert="VCAP-VCF-Automation">VCAP Automation</button>
+            <button type="button" class="ts-cert-chip" data-cert="VCAP-VCF-Operations">VCAP Operations</button>
+            <button type="button" class="ts-cert-chip" data-cert="VCAP-VCF-Storage">VCAP Storage</button>
+            <button type="button" class="ts-cert-chip" data-cert="VCAP-VCF-VKS">VCAP VKS</button>
+            <button type="button" class="ts-cert-chip" data-cert="VCAP-VCF-Networking">VCAP Networking</button>
+          </div>
+
+          <div id="ts-lib-progress" class="ts-lib-progress" hidden>
+            <div class="ts-progress-bar-wrap"><div id="ts-progress-bar" class="ts-progress-bar"></div></div>
+            <span id="ts-progress-label" class="ts-progress-label"></span>
+          </div>
+
+          <p id="ts-lib-status" class="hint" style="margin-bottom:8px;color:var(--text-dim);"></p>
+
+          <!-- Scenario cards list -->
+          <div id="ts-scenario-list" class="ts-scenario-list"></div>
+        </div>
+
+        <!-- ── ADMIN: Build / Edit scenario form ──────────────────────── -->
+        <div id="ts-build-panel" class="ts-panel" hidden>
+          <div class="ts-build-header">
+            <span id="ts-build-title" class="ts-build-title">New Scenario</span>
+            <button type="button" class="ts-close-btn" id="ts-build-close">&times;</button>
+          </div>
+
+          <!-- Step 1: Snapshot -->
+          <div class="ts-build-section">
+            <h3 class="ts-build-section-heading">Step 1 &mdash; Introduce the fault &amp; capture a snapshot</h3>
+            <p class="hint">Save the scenario (Step 2 below), introduce the fault in your lab, then click <strong>Capture snapshot</strong> &mdash; the wizard will create the snapshot on all vCenter VMs automatically. Requires vCenter credentials saved in <em>&#9881; vCenter</em> settings.</p>
+            <div class="ts-snapshot-row">
+              <input type="text" id="ts-snapshot-name" class="ts-snapshot-input" placeholder="Snapshot name (auto-generated if blank)">
+              <button type="button" class="btn btn-secondary" id="ts-capture-btn">Capture snapshot</button>
+            </div>
+            <p id="ts-capture-status" class="hint" style="color:var(--text-dim);margin-top:4px;"></p>
+          </div>
+
+          <!-- Step 2: Metadata -->
+          <div class="ts-build-section">
+            <h3 class="ts-build-section-heading">Step 2 &mdash; Scenario metadata</h3>
+            <input type="hidden" id="ts-build-id">
+            <div class="ts-build-grid">
+              <div class="field"><label>Name <span style="color:var(--danger)">*</span></label><input type="text" id="ts-build-name" placeholder="BGP AS Number Mismatch"></div>
+              <div class="field"><label>Difficulty</label>
+                <select id="ts-build-difficulty">
+                  <option value="easy">Easy</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
+              <div class="field ts-build-full"><label>Description</label><input type="text" id="ts-build-desc" placeholder="One-line description of the fault"></div>
+              <div class="field ts-build-full"><label>Topics (comma-separated)</label><input type="text" id="ts-build-topics" placeholder="bgp, nsx-routing"></div>
+              <div class="field ts-build-full"><label>Exam objectives (comma-separated)</label><input type="text" id="ts-build-exams" placeholder="VCP-VCF-Admin, VCAP-VCF-Networking"></div>
+              <div class="field ts-build-full"><label>Lab requirements (comma-separated)</label><input type="text" id="ts-build-reqs" placeholder="nsx, vyos, nested-cluster-min-3"></div>
+              <div class="field ts-build-full">
+                <label>Cert relevance</label>
+                <div class="ts-build-cert-checks" id="ts-build-cert-checks">
+                  <label class="ts-cert-check-item"><input type="checkbox" class="ts-cert-check" value="VCP-VCF-Architect"> VCP-VCF Architect</label>
+                  <label class="ts-cert-check-item"><input type="checkbox" class="ts-cert-check" value="VCP-VCF-Admin"> VCP-VCF Admin</label>
+                  <label class="ts-cert-check-item"><input type="checkbox" class="ts-cert-check" value="VCP-VCF-Support"> VCP-VCF Support</label>
+                  <label class="ts-cert-check-item"><input type="checkbox" class="ts-cert-check" value="VCP-VVF-Admin"> VCP-VVF Admin</label>
+                  <label class="ts-cert-check-item"><input type="checkbox" class="ts-cert-check" value="VCP-VVF-Support"> VCP-VVF Support</label>
+                  <label class="ts-cert-check-item"><input type="checkbox" class="ts-cert-check" value="VCAP-VCF-Automation"> VCAP-VCF Automation</label>
+                  <label class="ts-cert-check-item"><input type="checkbox" class="ts-cert-check" value="VCAP-VCF-Operations"> VCAP-VCF Operations</label>
+                  <label class="ts-cert-check-item"><input type="checkbox" class="ts-cert-check" value="VCAP-VCF-Storage"> VCAP-VCF Storage</label>
+                  <label class="ts-cert-check-item"><input type="checkbox" class="ts-cert-check" value="VCAP-VCF-VKS"> VCAP-VCF VKS</label>
+                  <label class="ts-cert-check-item"><input type="checkbox" class="ts-cert-check" value="VCAP-VCF-Networking"> VCAP-VCF Networking</label>
+                </div>
+              </div>
+              <div class="field ts-build-full">
+                <label>Learning objectives (one per line, 2&ndash;4)</label>
+                <textarea id="ts-build-objectives" class="ts-notes" rows="4" placeholder="Diagnose BGP session state via NSX Manager&#10;Identify AS number mismatch between T0 and upstream router"></textarea>
+              </div>
+            </div>
+
+            <div class="ts-build-section-sub">
+              <h4>Customer scenario</h4>
+              <div class="field"><label>Initial call / message</label><textarea id="ts-build-scenario" class="ts-notes" rows="3" placeholder="Hi, this is Alex — our VMs lost internet access…"></textarea></div>
+              <div class="field"><label>Follow-up clue (revealed when troubleshooter asks for more info)</label><textarea id="ts-build-followup" class="ts-notes" rows="2" placeholder="Actually, one of our junior engineers made a change last night…"></textarea></div>
+            </div>
+
+            <div class="ts-build-section-sub">
+              <h4>Hints (5 progressive levels)</h4>
+              <div id="ts-build-hints-container"></div>
+            </div>
+
+            <div class="ts-build-section-sub">
+              <h4>Fix steps</h4>
+              <textarea id="ts-build-fixsteps" class="ts-notes" rows="6" placeholder="One fix step per line&#10;1. Check BGP session status on T0&#10;2. Compare AS numbers…"></textarea>
+              <p class="hint">One step per line. Numbered lines are fine; numbers will be stripped.</p>
+            </div>
+
+            <div class="ts-build-section-sub">
+              <h4>Verify script (.ps1)</h4>
+              <textarea id="ts-build-verify" class="ts-notes ts-verify-editor" rows="10" placeholder="# verify-my-scenario.ps1&#10;# Connect to NSX/vCenter and return FAULT_PRESENT or FAULT_RESOLVED"></textarea>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="ts-build-actions">
+            <button type="button" class="btn btn-ghost" id="ts-build-cancel">Cancel</button>
+            <button type="button" class="btn btn-secondary" id="ts-test-btn" disabled>Test this scenario</button>
+            <button type="button" class="btn btn-primary" id="ts-build-save">Save to library</button>
+          </div>
+          <p id="ts-build-error" class="hint" style="color:var(--danger);margin-top:8px;"></p>
+        </div>
+
+        <!-- ── TROUBLESHOOTER: Session flow ───────────────────────────── -->
+        <div id="ts-session-panel" class="ts-panel" hidden>
+
+          <!-- Phase 0: Mode selector (learning mode only) -->
+          <div id="ts-phase-0" class="ts-phase" hidden>
+            <div class="ts-mode-select">
+              <h2>How do you want to troubleshoot?</h2>
+              <div class="ts-mode-cards">
+                <button class="ts-mode-card ts-mode-card-standard" id="ts-mode-fix">
+                  <div class="ts-mode-card-heading">Fix my lab</div>
+                  <div class="ts-mode-card-desc">Standard mode &mdash; diagnose and fix the fault. No guided prompts.</div>
+                </button>
+                <button class="ts-mode-card ts-mode-card-learn" id="ts-mode-learn">
+                  <div class="ts-mode-card-heading">Learn to troubleshoot</div>
+                  <div class="ts-mode-card-desc">Guided methodology mode &mdash; work through a structured diagnostic framework with prompts at each stage.</div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phase 1: Confirm lab is ready -->
+          <div id="ts-phase-1" class="ts-phase">
+            <div class="ts-phase-header">Step 1 &mdash; Confirm lab is ready</div>
+            <div id="ts-learn-methodology" class="ts-learn-methodology" hidden>
+              <p class="ts-learn-method-intro">Good troubleshooters follow a consistent methodology. We will work through this together:</p>
+              <ol class="ts-methodology-steps">
+                <li><strong>Symptom</strong> &mdash; what is the customer reporting?</li>
+                <li><strong>Scope</strong> &mdash; how widespread is the impact?</li>
+                <li><strong>Isolate</strong> &mdash; which layer or component is affected?</li>
+                <li><strong>Identify</strong> &mdash; what is the root cause?</li>
+                <li><strong>Fix</strong> &mdash; resolve the issue</li>
+                <li><strong>Verify</strong> &mdash; confirm it is actually fixed</li>
+                <li><strong>Document</strong> &mdash; record what happened and why</li>
+              </ol>
+            </div>
+            <div class="field checkbox-field">
+              <label class="checkbox-row"><input type="checkbox" id="ts-check-1"><span>My lab is built and accessible</span></label>
+            </div>
+            <div class="field checkbox-field">
+              <label class="checkbox-row"><input type="checkbox" id="ts-check-2"><span>I understand the lab configuration has been deliberately broken for this session</span></label>
+            </div>
+            <button type="button" id="ts-start-btn" class="btn btn-primary" disabled>Choose a scenario</button>
+          </div>
+
+          <!-- Phase 2: Pick scenario -->
+          <div id="ts-phase-2" class="ts-phase" hidden>
+            <div class="ts-phase-header">Step 2 &mdash; Select scenario</div>
+
+            <!-- Active scenario (admin pre-loaded) -->
+            <div id="ts-admin-loaded" class="ts-admin-loaded-banner" hidden>
+              <div class="ts-admin-loaded-label">Admin has loaded a scenario for this session:</div>
+              <div id="ts-admin-loaded-name" class="ts-admin-loaded-name"></div>
+              <div id="ts-admin-loaded-meta" class="ts-admin-loaded-meta"></div>
+              <button type="button" class="btn btn-primary" id="ts-use-active-btn">Start with this scenario</button>
+              <button type="button" class="btn btn-ghost" id="ts-pick-own-btn" style="margin-left:8px;">Pick a different one</button>
+            </div>
+
+            <!-- Self-service picker (shown when no admin scenario or user chooses own) -->
+            <div id="ts-self-picker" hidden>
+              <div class="ts-lib-toolbar" style="margin-bottom:8px;">
+                <select id="ts-pick-diff" class="ts-lib-filter">
+                  <option value="">Any difficulty</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+                <select id="ts-pick-topic" class="ts-lib-filter">
+                  <option value="">Any topic</option>
+                </select>
+              </div>
+              <div id="ts-pick-list" class="ts-scenario-list ts-pick-list"></div>
+            </div>
+
+            <p id="ts-pick-error" class="hint" style="color:var(--danger);margin-top:8px;"></p>
+            <div class="ts-phase-actions">
+              <button type="button" class="btn btn-ghost" id="ts-pick-back">Back</button>
+            </div>
+          </div>
+
+          <!-- Phase 3: Investigation -->
+          <div id="ts-phase-3" class="ts-phase" hidden>
+
+            <div id="ts-scenario-card" class="ts-scenario-card">
+              <div id="ts-scenario-header" class="ts-scenario-header"></div>
+              <div id="ts-scenario-message" class="ts-scenario-message"></div>
+              <div id="ts-scenario-clue" class="ts-scenario-clue" hidden></div>
+            </div>
+
+            <div id="ts-learn-prompts" class="ts-learn-prompts" hidden>
+              <div class="ts-learn-prompt-step" id="ts-prompt-symptom">
+                <div class="ts-prompt-label">Before you start investigating</div>
+                <div class="ts-prompt-question">What is the symptom in your own words? What is the customer actually experiencing?</div>
+                <textarea id="ts-prompt-symptom-text" class="learn-textarea" rows="2" placeholder="Describe the symptom..."></textarea>
+              </div>
+              <div class="ts-learn-prompt-step" id="ts-prompt-scope">
+                <div class="ts-prompt-label">Scope the problem</div>
+                <div class="ts-prompt-question">Is this affecting one VM, one host, one network segment, or everything? How would you find out?</div>
+                <textarea id="ts-prompt-scope-text" class="learn-textarea" rows="2" placeholder="Describe the scope..."></textarea>
+              </div>
+              <div class="ts-learn-prompt-step" id="ts-prompt-layer">
+                <div class="ts-prompt-label">Isolate the layer</div>
+                <div class="ts-prompt-question">Based on the scope, which layer would you investigate first?</div>
+                <select id="ts-prompt-layer-select" class="learn-select">
+                  <option value="">Select the layer you'll start with&hellip;</option>
+                  <option value="physical">Physical &mdash; cabling, switches, NICs</option>
+                  <option value="virtual-networking">Virtual networking &mdash; DVS, port groups, VLANs</option>
+                  <option value="storage">Storage &mdash; vSAN, datastores, paths</option>
+                  <option value="dns-identity">DNS / Identity &mdash; name resolution, AD, certificates</option>
+                  <option value="application">Application &mdash; service configuration, VM OS</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:16px;">
+              <label for="ts-notes">Investigation notes</label>
+              <textarea id="ts-notes" class="ts-notes" placeholder="What are you checking? What commands are you running? What are you finding?"></textarea>
+            </div>
+
+            <div class="ts-action-row">
+              <button type="button" id="ts-ask-customer" class="btn btn-secondary">Ask customer for more info</button>
+              <button type="button" id="ts-log-ticket-btn" class="btn btn-secondary">Log a ticket</button>
+              <button type="button" id="ts-request-hint" class="btn btn-secondary" disabled title="Submit a ticket first to unlock hints">Request hint</button>
+              <button type="button" id="ts-mark-resolved" class="btn btn-primary" style="margin-left:auto;">I&rsquo;ve fixed it</button>
+            </div>
+
+            <div id="ts-ticket-panel" class="ts-ticket-panel" hidden>
+              <div class="ts-ticket-panel-header">Support ticket</div>
+              <div class="field"><label for="ts-symptom">Symptom <span style="color:var(--danger)">*</span></label><input type="text" id="ts-symptom" placeholder="What is the customer observing?"></div>
+              <div class="field"><label for="ts-tried">Steps tried</label><input type="text" id="ts-tried" placeholder="What have you checked so far?"></div>
+              <div class="field"><label for="ts-cause">Suspected cause</label><input type="text" id="ts-cause" placeholder="Your working hypothesis"></div>
+              <div class="field"><label for="ts-impact">Impact / urgency</label><input type="text" id="ts-impact" placeholder="Business impact"></div>
+              <p id="ts-ticket-error" class="hint" style="color:var(--danger);"></p>
+              <div style="display:flex;gap:8px;">
+                <button type="button" id="ts-ticket-submit" class="btn btn-primary">Submit ticket</button>
+                <button type="button" id="ts-ticket-cancel" class="btn btn-ghost">Cancel</button>
+              </div>
+            </div>
+
+            <div id="ts-hints-panel" class="ts-hints-panel" hidden>
+              <div class="ts-hints-header">Hints <span id="ts-hint-level-badge" class="ts-hint-level-badge"></span></div>
+              <div id="ts-hints-container"></div>
+            </div>
+
+          </div>
+
+          <!-- Phase 4: Debrief -->
+          <div id="ts-phase-4" class="ts-phase" hidden>
+            <div class="ts-phase-header">Session debrief</div>
+            <div id="ts-debrief-fault"      class="ts-debrief-section"></div>
+            <div id="ts-debrief-stats"      class="ts-debrief-stats"></div>
+            <div id="ts-debrief-ticket"     class="ts-debrief-section"></div>
+            <div id="ts-debrief-objectives" class="ts-debrief-section"></div>
+            <div id="ts-learn-debrief" class="ts-learn-debrief" hidden></div>
+            <div class="ts-phase-actions" style="margin-top:20px;flex-wrap:wrap;gap:8px;">
+              <button type="button" id="ts-another-scenario" class="btn btn-secondary">Try another scenario</button>
+              <button type="button" id="ts-end-session"      class="btn btn-ghost">End session</button>
+              <button type="button" id="ts-download-summary" class="btn btn-secondary" style="margin-left:auto;">Download summary</button>
+            </div>
+          </div>
+
+        </div><!-- /ts-session-panel -->
+
+        <!-- ── STUDY PLAN ──────────────────────────────────────────────── -->
+        <div id="ts-studyplan-panel" class="ts-panel" hidden>
+        </div><!-- /ts-studyplan-panel -->
+      </section>
+
+    </div>
+
+    <div class="nav">
+      <button type="button" id="btn-back" class="btn btn-ghost">Back</button>
+      <span id="step-error" class="step-error"></span>
+      <button type="button" id="btn-next" class="btn btn-primary">Next</button>
+    </div>
+
+  </main>
+
+  <aside class="topology" id="topology">
+    <h2>Live topology</h2>
+
+    <div class="topo-host" id="topo-host">
+      <div class="topo-host-label">Physical host</div>
+      <div class="topo-host-stats" id="topo-host-stats">
+        <span class="chip">&ndash; cores</span>
+        <span class="chip">&ndash; GB RAM</span>
+        <span class="chip">&ndash; storage</span>
+      </div>
+    </div>
+
+    <div id="topo-appliances" class="topo-appliances"></div>
+
+    <div class="topo-nested" id="topo-nested"></div>
+
+    <div class="topo-networks" id="topo-networks"></div>
+  </aside>
+
+</div>
+
+<script src="/vendor/mermaid.min.js"></script>
+<script src="wizard.js"></script>
+</body>
+</html>

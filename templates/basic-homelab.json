@@ -1,0 +1,24 @@
+{
+  "_type": "lab-template",
+  "_version": 1,
+  "name": "Basic homelab",
+  "description": "The minimum viable lab: one physical host, one nested ESXi VM, no VyOS, vSAN, NSX, or VCF. A clean starting point for general tinkering rather than any specific feature.",
+  "answers": {
+    "discovery": { "useCase": "homelab" },
+    "hardware": {
+      "cpuCores": 8,
+      "ramGB": 64,
+      "storageDevices": [{ "type": "sata_ssd", "capacityGB": 500, "capacityUnit": "GB" }],
+      "nicCount": 1
+    },
+    "design": {
+      "esxiVersion": "8.0u3",
+      "mgmtCidr": "192.168.10.0/24",
+      "vmotionCidr": "192.168.20.0/24",
+      "vmCidr": "192.168.30.0/24",
+      "nestedHostCount": 1,
+      "vcpuPerHost": 4,
+      "vramPerHostGB": 16
+    }
+  }
+}

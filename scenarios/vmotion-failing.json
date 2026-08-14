@@ -1,0 +1,47 @@
+{
+  "id": "vmotion-failing",
+  "name": "vMotion Failing Between Hosts",
+  "description": "Live migration of VMs between nested hosts is failing. Root cause is wrong VLAN on the vMotion vmkernel adapter.",
+  "difficulty": "easy",
+  "examObjectives": [
+    "VCP-DCV Section 3",
+    "VCAP-DCV Section 2"
+  ],
+  "topics": [
+    "vSphere",
+    "Networking",
+    "vMotion"
+  ],
+  "customerScenario": "We're trying to move some VMs between hosts for maintenance but it keeps failing partway through. The VM ends up in an invalid state and we have to reset it. This is urgent \u2014 we need to do host maintenance today.",
+  "customerFollowUp": "We recently rebuilt our network switches and reconfigured some VLANs. The team said everything was the same but maybe something changed?",
+  "snapshotName": "",
+  "verifyScript": "verify-vmotion-failing.ps1",
+  "fixSteps": [
+    "Check vMotion vmkernel adapter on both hosts",
+    "Verify VLAN ID matches on port group and physical switch",
+    "Correct VLAN ID if mismatched",
+    "Test vMotion"
+  ],
+  "hints": [
+    "Check the vMotion task in vCenter \u2014 what error message does it show when it fails?",
+    "Verify that the vMotion vmkernel adapter exists on both hosts and has the vMotion service enabled.",
+    "Check the VLAN configuration on the vMotion vmkernel port group on both hosts. Are they on the same VLAN?",
+    "Compare the vMotion VLAN on the distributed virtual switch port group against what the physical switch is configured to pass. There may be a mismatch after the switch reconfiguration.",
+    "Correct the VLAN ID on the vMotion port group to match what the physical switch expects. Test vMotion again \u2014 it should complete successfully."
+  ],
+  "labRequirements": [
+    "nested-cluster-min-2",
+    "vcenter"
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin"
+  ],
+  "learningObjectives": [
+    "Identify a vMotion VLAN mismatch as the cause of live migration failures",
+    "Verify vMotion vmkernel adapter configuration and VLAN settings on both source and destination hosts",
+    "Compare DVS port group VLAN assignments against physical switch trunk configuration",
+    "Correct the vMotion VLAN and validate successful live migration"
+  ],
+  "author": "Jon \u2014 CloudITBlog.com",
+  "created": "2026-06-26"
+}

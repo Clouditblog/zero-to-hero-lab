@@ -1,0 +1,52 @@
+{
+  "id": "nsx-t0-uplink-wrong",
+  "name": "VMs Can't Reach Internet \u2014 NSX T0 Uplink Misconfigured",
+  "description": "VMs on NSX segments can't reach external networks. T0 gateway uplink IP is on the wrong subnet and can't peer with VyOS.",
+  "difficulty": "medium",
+  "examObjectives": [
+    "VCP-NV Section 3",
+    "VCAP-NV Section 2",
+    "3V0-25.25 Section 2"
+  ],
+  "topics": [
+    "NSX",
+    "Routing",
+    "T0",
+    "VyOS"
+  ],
+  "customerScenario": "Our application team is saying their VMs can't reach the internet or any external services since this morning. Internal VM to VM traffic seems fine but anything going outside isn't working. We have a deadline today and this is critical.",
+  "customerFollowUp": "Our network team made some changes to the uplink configuration yesterday. They said it was just a minor IP change but maybe something went wrong.",
+  "snapshotName": "",
+  "verifyScript": "verify-t0-uplink-wrong.ps1",
+  "fixSteps": [
+    "Check T0 uplink IP in NSX Manager",
+    "Check BGP peer status on T0",
+    "Compare against VyOS BGP neighbour config",
+    "Correct IP mismatch on either T0 or VyOS",
+    "Verify BGP session establishes and traffic flows"
+  ],
+  "hints": [
+    "Start by confirming the scope of the issue. Can VMs reach their default gateway? Can they ping the T1 gateway IP? Can they ping the T0 uplink IP?",
+    "Check the T0 gateway configuration in NSX Manager. Look at the uplink interfaces \u2014 what IP addresses are configured?",
+    "Check the BGP session status on the T0 gateway. Is the BGP peer showing as established or down?",
+    "Compare the T0 uplink IP against what VyOS is configured to expect as a BGP neighbour. The IP changed yesterday but VyOS may still be pointing at the old address.",
+    "Update the T0 uplink IP to match what VyOS expects as the BGP neighbour, or update VyOS to point at the new T0 uplink IP. Once BGP re-establishes, north-south traffic will restore."
+  ],
+  "labRequirements": [
+    "nested-cluster",
+    "vcenter",
+    "nsx",
+    "vyos-bgp"
+  ],
+  "certRelevance": [
+    "VCAP-VCF-Networking"
+  ],
+  "learningObjectives": [
+    "Trace north-south connectivity failure from VM layer through T1 and T0 to the upstream router",
+    "Inspect T0 uplink interface IP configuration in NSX Manager",
+    "Correlate a T0 uplink IP change with BGP peer failure on VyOS",
+    "Restore external connectivity by aligning T0 uplink IP with the BGP neighbour configuration"
+  ],
+  "author": "Jon \u2014 CloudITBlog.com",
+  "created": "2026-06-26"
+}

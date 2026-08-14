@@ -1,0 +1,47 @@
+{
+  "id": "monitor-allow-legacy-cpu",
+  "name": "monitor.allowLegacyCPU Missing",
+  "description": "Nested ESXi VMs fail to power on with a VT-x error after being migrated to a new host because the monitor.allowLegacyCPU advanced parameter was not carried over",
+  "difficulty": "easy",
+  "examObjectives": [
+    "VCP-DCV"
+  ],
+  "topics": [
+    "vsphere-networking"
+  ],
+  "customerScenario": "Hi, this is Pat. We're trying to power on our nested ESXi VMs and they keep failing. The error says something about Intel VT-x being disabled. We know the physical host has virtualisation enabled in BIOS \u2014 we can see it listed in the CPU features. All of our nested VMs were working last week but we migrated them to a new host this morning and now none of them will start.",
+  "customerFollowUp": "The migration was from a host running ESXi 7.0 to a new one running ESXi 8.0. We used Storage vMotion to move all the VM files across. The migration itself completed without errors \u2014 the VMs just won't power on now.",
+  "snapshotName": "",
+  "verifyScript": "verify-monitor-allow-legacy-cpu.ps1",
+  "fixSteps": [
+    "Right-click a failing nested ESXi VM > Edit Settings > VM Options > Advanced > Configuration Parameters",
+    "Click 'Edit Configuration' and look for the parameter 'monitor.allowLegacyCPU'",
+    "If it is missing or set to 'false', add or update it: Name = monitor.allowLegacyCPU, Value = true",
+    "Also verify under VM Hardware > CPU: 'Expose hardware assisted virtualization to the guest OS' is checked",
+    "Click OK and attempt to power on the VM",
+    "To fix all nested ESXi VMs at once via PowerCLI:",
+    "Get-VM 'ESXi*' | New-AdvancedSetting -Name 'monitor.allowLegacyCPU' -Value 'true' -Confirm:$false",
+    "Then verify the CPU virtualisation exposure setting on each VM before powering on"
+  ],
+  "hints": [
+    "The nested ESXi VMs worked on the old host but fail on the new one after a Storage vMotion. The error mentions VT-x. For a VM running ESXi (a hypervisor) to work inside another hypervisor, specific VM-level settings are required that control nested virtualisation support \u2014 and these can sometimes be lost or absent.",
+    "For nested ESXi to function as a guest VM, two things must be true: (1) the VM's CPU settings must expose hardware virtualisation to the guest OS, and (2) the advanced VM parameter 'monitor.allowLegacyCPU' must be set to 'true'. Check both on one of the failing VMs.",
+    "Open Edit Settings on a failing nested ESXi VM. Under VM Hardware > CPU: is 'Expose hardware assisted virtualization to the guest OS' checked? Then under VM Options > Advanced > Configuration Parameters: is the 'monitor.allowLegacyCPU' parameter present and set to 'true'?",
+    "The 'monitor.allowLegacyCPU = true' advanced parameter is missing. This parameter is sometimes absent from VMs that were originally built without following nested ESXi best practices, and Storage vMotion preserves the VM files but not parameters that might be set at the host level. Add this parameter via Configuration Parameters.",
+    "Edit Settings on the nested ESXi VM > VM Options > Advanced > Configuration Parameters > Add Row: Name = monitor.allowLegacyCPU, Value = true. Also verify VM Hardware > CPU > 'Expose hardware assisted virtualization to the guest OS' is ticked. Save and power on \u2014 should start normally."
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin"
+  ],
+  "learningObjectives": [
+    "Identify the VM advanced parameters required for nested ESXi to function as a guest VM",
+    "Distinguish between CPU hardware virtualisation exposure and the monitor.allowLegacyCPU parameter",
+    "Add missing advanced VM configuration parameters via the vCenter Edit Settings dialog",
+    "Verify nested ESXi VMs power on successfully after configuration parameters are applied"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-26",
+  "labRequirements": [
+    "nested-cluster-min-1"
+  ]
+}

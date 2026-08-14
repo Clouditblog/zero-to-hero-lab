@@ -1,0 +1,60 @@
+{
+  "id": "vcf-nsx-host-prep-failed",
+  "name": "VCF: Workload Domain Expansion Blocked — NSX Host Preparation Failed",
+  "description": "After SDDC Manager adds a new ESXi host to an existing workload domain, the host's NSX preparation status shows as 'Failed'. The NSX VIBs could not be installed because the host's management vmkernel adapter cannot reach the NSX Manager on the required port.",
+  "difficulty": "medium",
+  "examObjectives": [
+    "3V0-25.25 Section 2"
+  ],
+  "topics": [
+    "vcf",
+    "nsx",
+    "sddc-manager",
+    "host-preparation",
+    "workload-domain",
+    "vibs",
+    "networking"
+  ],
+  "customerScenario": "We used SDDC Manager to expand our workload domain by adding a new ESXi host. SDDC Manager marked the task as complete but when I look at the host in vCenter, it shows 'Not Ready' under the NSX preparation status. Attempts to vMotion workloads to the new host fail because NSX is not configured on it. The host was commissioned into SDDC Manager successfully and shows green for everything except NSX preparation.",
+  "customerFollowUp": "The new host was installed in a different rack and connected to the same management switch, but the infrastructure team put it on a different management VLAN as part of a new network layout they're rolling out. They say the host can reach vCenter and SDDC Manager fine, but I'm not sure if the firewall rules between that new VLAN and the NSX Manager IP were set up. The other hosts are on the original management VLAN.",
+  "snapshotName": "",
+  "verifyScript": "verify-vcf-nsx-host-prep-failed.ps1",
+  "fixSteps": [
+    "In vCenter, navigate to NSX (from the main menu or Networking & Security) > System > Fabric > Hosts",
+    "Find the new host and check its Configuration State — it will show 'Failed' with an error message",
+    "Note the error: it will typically say the NSX Manager could not connect to the host, or the VIB installation failed due to a connection issue",
+    "SSH to the failing ESXi host",
+    "Test connectivity from the host to the NSX Manager IP on port 443: nc -zv <nsx-manager-ip> 443",
+    "Also test port 1234 which is used for NSX agent communication: nc -zv <nsx-manager-ip> 1234",
+    "If the connection is refused or times out, a firewall or routing issue is blocking the path between the new management VLAN and NSX Manager",
+    "Work with the network team to add the required firewall rules: the new host's management vmk0 IP must be able to reach NSX Manager on TCP 443 and TCP 1234",
+    "After firewall rules are in place, verify connectivity from the host again",
+    "In vCenter NSX > System > Fabric > Hosts, select the failed host and click Resolve or Re-prepare",
+    "Monitor the preparation status — it should progress through 'Installing' to 'Configured'",
+    "Verify the host is fully ready in NSX before attempting vMotion migrations to it"
+  ],
+  "hints": [
+    "NSX host preparation installs VIBs on the ESXi host and then establishes a management-plane connection between the host and the NSX Manager. If the host cannot reach NSX Manager on the required ports, the VIBs may install but the configuration will fail. The new host is on a different management VLAN — check whether firewall rules allow traffic from that VLAN to the NSX Manager IP.",
+    "In vCenter, go to NSX > System > Fabric > Hosts and check the failed host's Configuration State. The error message will indicate whether the issue is VIB installation (package download from NSX Manager) or NSX agent connectivity (post-install configuration). Both require network access from the host management interface to NSX Manager.",
+    "NSX Manager communicates with ESXi hosts over TCP 443 (management API and VIB download) and TCP 1234 (control-plane communication between the NSX agent on the host and NSX Manager). From the failing host, use 'nc -zv <nsx-manager-ip> 443' and 'nc -zv <nsx-manager-ip> 1234' to test whether both ports are reachable. If either fails, a firewall is blocking the traffic.",
+    "The host is on a new management VLAN that the infrastructure team recently added. Firewall rules between new VLANs and existing infrastructure are easy to miss. The required firewall rules are: allow TCP 443 and TCP 1234 from the new host management subnet to the NSX Manager IP. Once those rules are in place, NSX host preparation can be retried.",
+    "Fix: Verify firewall rules allow TCP 443 and TCP 1234 from the new host's management interface to NSX Manager. Confirm with 'nc -zv' from the host. Then in vCenter NSX > System > Fabric > Hosts > select the failed host > Resolve (or right-click > Resolve). Monitor the preparation status until it shows Configured."
+  ],
+  "labRequirements": [
+    "vcf-sddc-manager",
+    "nsx",
+    "nested-cluster-min-3"
+  ],
+  "certRelevance": [
+    "VCP-VCF-Architect",
+    "VCP-VCF-Admin"
+  ],
+  "learningObjectives": [
+    "Understand the network connectivity requirements between ESXi hosts and NSX Manager for host preparation",
+    "Diagnose a failed NSX host preparation by checking the Configuration State in vCenter NSX > Fabric > Hosts",
+    "Test connectivity from an ESXi host to NSX Manager using nc and identify blocked ports",
+    "Re-trigger NSX host preparation after resolving the network connectivity issue"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}

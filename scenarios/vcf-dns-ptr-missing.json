@@ -1,0 +1,51 @@
+{
+  "id": "vcf-dns-ptr-missing",
+  "name": "VCF Bring-up: Host Reported Unresponsive \u2014 DNS PTR Record Missing",
+  "description": "VCF bring-up reports an ESXi host as unresponsive during validation. Host is perfectly reachable by IP. Root cause is a missing PTR record \u2014 bring-up validates reverse DNS for all components.",
+  "difficulty": "hard",
+  "examObjectives": [
+    "3V0-25.25 Section 1",
+    "3V0-25.25 Section 4"
+  ],
+  "topics": [
+    "VCF",
+    "Bring-up",
+    "DNS",
+    "SDDC Manager"
+  ],
+  "customerScenario": "The VCF bring-up wizard is saying one of our ESXi hosts is unresponsive. But we can ping it, we can SSH to it, vCenter can see it. Everything looks fine from our end. The bring-up is the only thing that thinks there's a problem.",
+  "customerFollowUp": "We set up DNS for all the hosts before we started. Forward lookups work \u2014 we checked. We didn't specifically check reverse lookups though.",
+  "snapshotName": "",
+  "verifyScript": "verify-vcf-dns-ptr.ps1",
+  "fixSteps": [
+    "Test reverse DNS lookup for host IP from SDDC Manager",
+    "Confirm PTR record is missing in DNS",
+    "Add PTR record in DNS server",
+    "Verify reverse lookup works",
+    "Re-run bring-up validation"
+  ],
+  "hints": [
+    "When bring-up reports a host as unresponsive but you can reach it by IP and FQDN, what does that tell you about where the validation is failing? What does bring-up check beyond basic connectivity?",
+    "VCF bring-up validates both forward and reverse DNS for every component. Try resolving the host by FQDN \u2014 does it return the correct IP? Then try reverse lookup of that IP \u2014 does it return the correct FQDN?",
+    "Run nslookup on the host's IP address from SDDC Manager. Does it return the expected FQDN or does it fail?",
+    "The reverse DNS lookup for the host's IP is failing \u2014 there is no PTR record in DNS. Bring-up validates PTR records for all components and treats a missing PTR as the host being unresponsive, which is misleading.",
+    "Add the missing PTR record to your DNS server for the affected host's IP address. Verify the reverse lookup works from SDDC Manager using nslookup. Re-run bring-up validation \u2014 the host should now pass."
+  ],
+  "labRequirements": [
+    "nested-cluster-min-4",
+    "sddc-manager",
+    "domain-controller"
+  ],
+  "certRelevance": [
+    "VCP-VCF-Admin",
+    "VCP-VCF-Support"
+  ],
+  "learningObjectives": [
+    "Understand why VCF bring-up validates reverse DNS for every component, not just forward lookups",
+    "Test reverse DNS resolution from SDDC Manager to identify missing PTR records",
+    "Add PTR records to a DNS server for VCF management components",
+    "Re-run bring-up validation after DNS is corrected to confirm host reachability"
+  ],
+  "author": "Jon \u2014 CloudITBlog.com",
+  "created": "2026-06-26"
+}

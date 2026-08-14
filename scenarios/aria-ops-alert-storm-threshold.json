@@ -1,0 +1,56 @@
+{
+  "id": "aria-ops-alert-storm-threshold",
+  "name": "Aria Operations: Alert Storm From Misconfigured Symptom Definition Threshold",
+  "description": "A custom symptom definition has its Critical threshold set far too low — CPU usage greater than 5% triggers a Critical alert. Nearly every VM in the environment is firing Critical CPU alerts, flooding the alerts dashboard and masking real problems.",
+  "difficulty": "medium",
+  "examObjectives": [
+    "3V0-22.25"
+  ],
+  "topics": [
+    "aria-operations",
+    "vrealize-operations",
+    "alert-definitions",
+    "symptom-definitions",
+    "thresholds",
+    "monitoring"
+  ],
+  "customerScenario": "Our Aria Operations dashboard exploded overnight — we now have over two thousand Critical alerts, almost all of them saying VMs are in a critical CPU state. The environment is performing totally normally: users aren't experiencing anything unusual and the actual CPU graphs look fine. This started yesterday afternoon when one of our admins was doing training exercises on customising alert definitions. I need to silence this flood so we can see if any real alerts are hiding underneath.",
+  "customerFollowUp": "The admin who was training confirmed they created a new custom symptom definition to learn how the threshold editor works. They said they entered a test value and forgot to change it before saving. They're not sure exactly what they set or which symptom definition it is. There are several custom definitions in the environment now from their practice session.",
+  "snapshotName": "",
+  "verifyScript": "verify-aria-ops-alert-storm-threshold.ps1",
+  "fixSteps": [
+    "Log in to Aria Operations as an administrator",
+    "Navigate to Alerts > Alert Definitions (or Configure > Alerts > Alert Definitions in older versions)",
+    "Look for custom alert definitions with unusually high active alert counts — sort by 'Active Alerts' descending",
+    "Open the alert definition driving the storm and find the symptom definition it references",
+    "Alternatively, navigate directly to Configure > Alerts > Symptom Definitions and filter by 'Custom' to list only user-created definitions",
+    "Open each custom symptom definition and check the threshold conditions",
+    "Find the one with a Critical threshold far too low — for example, CPU Usage (%) > 5",
+    "Edit the symptom definition and set the threshold to an appropriate value — for CPU Usage, Critical > 90% and Warning > 80% are typical starting points",
+    "Save the updated symptom definition",
+    "In Aria Operations, alerts are re-evaluated on the next collection cycle (typically every 5 minutes) — the storm should clear automatically as VMs drop below the corrected threshold"
+  ],
+  "hints": [
+    "When hundreds or thousands of alerts fire simultaneously across unrelated VMs, the problem is almost never a real outage — it is a misconfigured alert or symptom definition. The pattern here (all VMs, same alert type, started at a specific time) points to a threshold that was recently changed. Where in Aria Operations do you manage the conditions that trigger alerts?",
+    "In Aria Operations, alerts are driven by symptom definitions that evaluate metrics against thresholds. Navigate to Configure > Alerts > Symptom Definitions. Filter the list to show only Custom definitions — these are the user-created ones added during the training session. Look for any symptom with a threshold that is obviously wrong for the metric it measures.",
+    "A CPU Usage symptom with a Critical threshold of '> 5%' would fire on virtually every VM under any normal load. The threshold should be set somewhere above 80-90% for a meaningful alert. Find the custom CPU symptom definition, open it, and check what the Critical threshold is currently set to.",
+    "Edit the problematic symptom definition: change the Critical threshold from the too-low value (e.g., > 5%) to something sensible (e.g., > 90%). You can also set a Warning threshold at > 80%. Save the definition. Aria Operations will re-evaluate all active symptoms on the next data collection cycle — within 5-10 minutes, alerts that no longer meet the threshold will automatically cancel.",
+    "Fix: Navigate to Configure > Alerts > Symptom Definitions > filter to Custom > find the CPU symptom with the too-low threshold > Edit > set Critical threshold to > 90% (and Warning to > 80%) > Save. Wait one collection cycle (5 minutes). The alert count will drop from thousands to only the genuinely critical VMs."
+  ],
+  "labRequirements": [
+    "aria-operations",
+    "vcenter",
+    "nested-cluster-min-1"
+  ],
+  "certRelevance": [
+    "VCAP-VCF-Operations"
+  ],
+  "learningObjectives": [
+    "Distinguish a misconfigured alert from a real outage by recognising the scale and pattern of alerts firing",
+    "Navigate to symptom definitions in Aria Operations and identify custom definitions",
+    "Diagnose an incorrectly set metric threshold that causes widespread false-positive alerts",
+    "Edit a symptom definition threshold and understand that alerts self-cancel when conditions no longer match"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}

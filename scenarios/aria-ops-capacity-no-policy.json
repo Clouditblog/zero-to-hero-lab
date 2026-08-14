@@ -1,0 +1,55 @@
+{
+  "id": "aria-ops-capacity-no-policy",
+  "name": "Aria Operations: Capacity Project Shows No Recommendations",
+  "description": "An Aria Operations capacity project was created but shows 'No Recommendations' because no capacity policy has been assigned to it. Without a policy, the capacity engine has no criteria to evaluate and produces no output.",
+  "difficulty": "easy",
+  "examObjectives": [
+    "3V0-22.25"
+  ],
+  "topics": [
+    "aria-operations",
+    "vrealize-operations",
+    "capacity-management",
+    "capacity-projects",
+    "policies"
+  ],
+  "customerScenario": "We created an Aria Operations capacity project three days ago to plan for next quarter's infrastructure growth. It's been sitting there with 'No Recommendations' ever since. We expected it to show time-remaining projections and recommendations for adding hosts or storage. The exact same project configuration worked in our lab environment last month.",
+  "customerFollowUp": "Looking at the project setup, we followed the wizard steps: named the project, selected the scope — the production cluster — and saved it. But comparing it to an old screenshot of the lab setup, I think the lab version had something configured that this one doesn't. There may be a tab or section we didn't fill in.",
+  "snapshotName": "",
+  "verifyScript": "verify-aria-ops-capacity-no-policy.ps1",
+  "fixSteps": [
+    "Log in to Aria Operations as an administrator",
+    "Navigate to Capacity > Capacity Projects",
+    "Open the project showing 'No Recommendations'",
+    "Look at the project configuration — check for a 'Policy' or 'Capacity Policy' section",
+    "Confirm that no capacity policy is assigned — the field will be blank or show 'None'",
+    "Click Edit or the policy configuration section",
+    "Assign a capacity policy — use 'System Capacity Policy' if no custom policy exists, or select the appropriate custom policy for your environment",
+    "Save the project",
+    "Wait 5-10 minutes for Aria Operations to recalculate capacity using the new policy",
+    "Refresh the project view — recommendations for time remaining, excess capacity, or reclaimable resources should now appear"
+  ],
+  "hints": [
+    "An Aria Operations capacity project needs both a scope (which objects to analyse) and a policy (the rules and thresholds for what constitutes a capacity issue). If either is missing, the capacity engine cannot produce recommendations. The project shows a valid scope — look for what the other required component might be.",
+    "In Aria Operations, a capacity policy defines the criteria the engine uses when calculating headroom and time remaining — things like target utilisation percentages, buffer percentages, and demand models. Navigate to the project settings and look for a Policy or Capacity Policy section. Compare this project to one that produces recommendations.",
+    "The project has no capacity policy attached. Without a policy, Aria Operations does not know what thresholds or models to apply when calculating how much headroom remains or when capacity will run out. The fix is to assign a policy to the project.",
+    "In Capacity > Capacity Projects, open the project and look for the policy configuration. If your environment has the default 'System Capacity Policy', assign that. If you have custom policies defined under Configure > Policies, select the appropriate one. After saving, give Aria Operations a collection cycle (5-10 minutes) to recalculate.",
+    "Fix: Capacity > Capacity Projects > open the project > Edit > find the Policy field > assign 'System Capacity Policy' (or your custom policy) > Save. Within 5-10 minutes the project will recalculate and display time-remaining projections and any capacity recommendations."
+  ],
+  "labRequirements": [
+    "aria-operations",
+    "vcenter",
+    "nested-cluster-min-1"
+  ],
+  "certRelevance": [
+    "VCAP-VCF-Operations"
+  ],
+  "learningObjectives": [
+    "Understand that an Aria Operations capacity project requires both a scope and a capacity policy to produce recommendations",
+    "Identify a missing capacity policy as the cause of a project showing no recommendations",
+    "Assign a capacity policy to a project via Capacity > Capacity Projects",
+    "Verify the fix by confirming recommendations appear after the next calculation cycle"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}

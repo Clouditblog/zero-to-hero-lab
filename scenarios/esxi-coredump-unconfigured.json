@@ -1,0 +1,49 @@
+{
+  "id": "esxi-coredump-unconfigured",
+  "name": "ESXi Coredump Partition Not Configured",
+  "description": "An ESXi host has a persistent health warning because no coredump target is configured, leaving the host unable to capture crash data if it hits a PSOD.",
+  "difficulty": "easy",
+  "examObjectives": [
+    "2V0-18.25"
+  ],
+  "topics": [
+    "esxi-config",
+    "diagnostics",
+    "health",
+    "support"
+  ],
+  "customerScenario": "One of our ESXi hosts has had a yellow warning in the host summary for weeks. It says something about a coredump partition not being configured. We've been ignoring it but our manager noticed and wants it fixed before the next change window. We don't know what a coredump is or whether it matters.",
+  "customerFollowUp": "We've never had a host crash, so we've always assumed these warnings were cosmetic. But apparently our last VMware support case got escalated because we couldn't provide a crash dump when requested. I think that's related to this.",
+  "snapshotName": "",
+  "verifyScript": "verify-esxi-coredump-unconfigured.ps1",
+  "fixSteps": [
+    "In vSphere Client, go to the affected host > Monitor > Health and confirm the coredump configuration warning",
+    "SSH to the host and run: esxcli system coredump partition list",
+    "If a local diagnostic partition is listed but not active, activate it: esxcli system coredump partition set --partition <partition-id> --enable true",
+    "If no local partition is available, configure a network coredump target: esxcli system coredump network set --interface-name vmk0 --server-ip <ip> --server-port 6500",
+    "Enable network coredump: esxcli system coredump network set --enable true",
+    "Verify: esxcli system coredump partition list — the active partition should show as enabled",
+    "Confirm the health warning clears in vSphere Client (may take a few minutes)"
+  ],
+  "hints": [
+    "A coredump warning means the host has no configured destination to write a crash dump if it hits a PSOD (Purple Screen of Death). VMware Support requires crash dumps to diagnose host failures. Which command-line interface gives you full control over ESXi system configuration, including diagnostic settings?",
+    "SSH to the ESXi host and use esxcli system coredump to inspect and configure the coredump target. Start with: esxcli system coredump partition list — this shows available diagnostic partitions and whether any are currently active.",
+    "ESXi supports two types of coredump targets: a local diagnostic partition on a disk attached to the host, or a network coredump collector. If a partition appears in the list but is not active, you can activate it without any additional hardware.",
+    "If a local partition is listed but inactive, activate it with: esxcli system coredump partition set --partition <id> --enable true. The partition ID comes from the output of the list command. If there is no local partition, you need a network coredump collector.",
+    "Activate the local partition: esxcli system coredump partition set --partition <partition-id> --enable true. Verify with esxcli system coredump partition list that it now shows as enabled. The health warning in vSphere Client should clear within a few minutes."
+  ],
+  "labRequirements": [
+    "nested-cluster-min-1"
+  ],
+  "certRelevance": [
+    "VCP-VVF-Support"
+  ],
+  "learningObjectives": [
+    "Identify a missing coredump configuration via the ESXi host health check warning",
+    "Use esxcli system coredump commands to list and activate diagnostic partition targets",
+    "Distinguish between local partition and network coredump collector options",
+    "Understand why coredump configuration is a prerequisite for VMware support escalation"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}

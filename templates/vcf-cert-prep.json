@@ -1,0 +1,43 @@
+{
+  "_type": "lab-template",
+  "_version": 1,
+  "name": "VCF certification prep",
+  "description": "4-host nested cluster sized for a VCF bring-up: vSAN, NSX, and a BGP-peered VyOS router already switched on, plus the VCF Bring-up section enabled so you can practice the Cloud Builder workflow. You'll still need to fill in your own IPs for the VCF-specific fields.",
+  "learningMode": true,
+  "designRationale": {
+    "learningGoal": "certification",
+    "techFocus": "vcf"
+  },
+  "answers": {
+    "discovery": { "useCase": "certification" },
+    "hardware": {
+      "cpuCores": 24,
+      "ramGB": 256,
+      "storageDevices": [{ "type": "nvme", "capacityGB": 2000, "capacityUnit": "GB" }],
+      "nicCount": 1
+    },
+    "design": {
+      "esxiVersion": "8.0u3",
+      "vyosEnabled": true,
+      "vyosNetworkMode": "bgp",
+      "mgmtCidr": "192.168.10.0/24",
+      "vmotionCidr": "192.168.20.0/24",
+      "vmCidr": "192.168.30.0/24",
+      "vsanEnabled": true,
+      "vsanCidr": "192.168.40.0/24",
+      "vsanArch": "esa",
+      "nestedHostCount": 4,
+      "vcpuPerHost": 6,
+      "vramPerHostGB": 32,
+      "nestedDisks": [
+        { "sizeGB": 400, "purpose": "vsan_storage_pool" },
+        { "sizeGB": 20, "purpose": "local_datastore" }
+      ],
+      "nsxEnabled": true,
+      "nsxSize": "medium",
+      "nsxTopology": "full",
+      "nsxEdgeCount": 2,
+      "vcfEnabled": true
+    }
+  }
+}

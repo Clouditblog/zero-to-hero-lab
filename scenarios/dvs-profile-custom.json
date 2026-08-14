@@ -1,0 +1,51 @@
+{
+  "id": "dvs-profile-custom",
+  "name": "DVS Teaming Policy Set to Custom",
+  "description": "vSAN latency spikes after the distributed switch teaming policy on the vSAN port group was changed from LBT to a Custom override",
+  "difficulty": "hard",
+  "examObjectives": [
+    "VCP-DCV",
+    "VCAP-DCV"
+  ],
+  "topics": [
+    "vsphere-networking",
+    "vsan"
+  ],
+  "customerScenario": "Hi, I'm the on-call engineer. We're seeing very high latency on all vSAN operations \u2014 reads and writes that normally complete in under 1ms are now taking 20 to 40ms. vCenter shows vSAN health as 'Degraded' but all disks show as healthy with no errors. This started about two hours ago.",
+  "customerFollowUp": "The network team was doing some DVS 'performance optimisations' this afternoon. They said they were following a tuning guide for distributed switches. I don't have specifics on what they changed but they were definitely in the vSphere networking configuration.",
+  "snapshotName": "",
+  "verifyScript": "verify-dvs-profile-custom.ps1",
+  "fixSteps": [
+    "In vCenter, go to Networking and find the Distributed Switch used for vSAN traffic",
+    "Select the DVS > Port Groups > select the vSAN port group > Edit Settings > Teaming and Failover",
+    "Note the current Load Balancing algorithm \u2014 if it shows 'Custom' or has been changed, that is the issue",
+    "For vSAN OSA: recommended teaming policy is 'Route based on physical NIC load (LBT)'",
+    "For vSAN ESA: recommended policy is 'Route based on originating virtual port'",
+    "Change the Load Balancing setting back to the appropriate VMware-recommended policy for your vSAN architecture",
+    "Click OK and monitor vSAN health in vCenter: Cluster > Monitor > vSAN > Health",
+    "Latency should return to normal within a few minutes as traffic rebalances"
+  ],
+  "hints": [
+    "vSAN latency degraded significantly after the network team made DVS changes. vSAN is highly sensitive to network path configuration \u2014 the teaming policy on the vSAN port group determines how storage traffic is distributed across physical NICs. A non-standard policy can cause vSAN to pick inefficient paths.",
+    "In vCenter, examine the Distributed Virtual Switch configuration. Navigate to the vSAN port group and look at the Teaming and Failover settings. What is the current Load Balancing algorithm? 'Custom' is a warning sign that a standard policy has been overridden.",
+    "Go to the DVS > Port Groups > select the vSAN port group > Edit. Under Teaming and Failover, what Load Balancing algorithm is selected? Compare it to VMware's recommended setting for your vSAN architecture (OSA vs ESA \u2014 they have different recommendations).",
+    "The vSAN port group teaming policy was changed from the VMware-recommended setting to 'Custom', which is overriding the default load balancing behaviour. For vSAN OSA, VMware recommends LBT (Route based on physical NIC load). For vSAN ESA, it's Route based on originating virtual port.",
+    "Edit the vSAN port group on the DVS: DVS > Port Groups > vSAN portgroup > Edit > Teaming and Failover > change Load Balancing from 'Custom' to the VMware-recommended policy for your architecture (LBT for OSA, originating virtual port for ESA). Click OK. Monitor vSAN health \u2014 latency should recover within a few minutes."
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin",
+    "VCAP-VCF-Storage"
+  ],
+  "learningObjectives": [
+    "Identify how non-standard DVS teaming policies degrade vSAN I/O performance",
+    "Distinguish VMware-recommended load balancing algorithms for vSAN OSA versus ESA",
+    "Navigate the DVS port group teaming and failover settings in vCenter",
+    "Restore vSAN latency to baseline by correcting the load balancing algorithm"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-26",
+  "labRequirements": [
+    "nested-cluster-min-3",
+    "vsan"
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "id": "tkg-namespace-storage-policy",
+  "name": "TKG Cluster Stuck — Namespace Has No Storage Policy",
+  "description": "A TKG workload cluster stays in Provisioning indefinitely because the vSphere namespace has no storage policy assigned, so node PersistentVolumeClaims cannot be satisfied.",
+  "difficulty": "medium",
+  "examObjectives": [
+    "3V0-24.25"
+  ],
+  "topics": [
+    "tkg",
+    "supervisor",
+    "kubernetes",
+    "storage",
+    "namespace",
+    "vks"
+  ],
+  "customerScenario": "We created a new TKG workload cluster about 30 minutes ago and it's stuck on 'Provisioning'. No nodes have come up and there's no error message in the UI — it just sits there. We've deployed TKG clusters before in a different namespace and they came up in under 10 minutes. Something must be different about this new namespace.",
+  "customerFollowUp": "The new namespace was created by a different team member following the standard runbook. They said they completed all the steps, but when I look at the namespace it does seem like some of the configuration sections are empty compared to our working namespace. I'm not sure which tabs they might have skipped.",
+  "snapshotName": "",
+  "verifyScript": "verify-tkg-namespace-storage-policy.ps1",
+  "fixSteps": [
+    "In vSphere Client, navigate to Workload Management > Namespaces",
+    "Open the namespace where the stuck TKG cluster was deployed",
+    "Click the Storage tab — check whether any storage policies are listed",
+    "Compare with a working namespace to confirm the difference",
+    "Click Add Storage and select the appropriate vSphere Storage Policy (e.g. 'vSAN Default Storage Policy' for vSAN environments)",
+    "Save the storage policy assignment to the namespace",
+    "Wait 2-3 minutes — the supervisor will automatically retry the pending PVC bindings for the cluster nodes",
+    "Monitor the cluster in Workload Management > Tanzu Kubernetes Clusters — status should transition from Provisioning to Running",
+    "Verify that node VMs appear in the vCenter inventory under the namespace resource pool"
+  ],
+  "hints": [
+    "A TKG cluster stuck in Provisioning with no error usually means the supervisor cannot satisfy a resource request for the cluster nodes. TKG nodes require persistent volumes for their OS disks. What configuration on the vSphere namespace controls which storage resources are available to workloads deployed there?",
+    "In vSphere Client, navigate to Workload Management > Namespaces and open the affected namespace. Namespaces have a Storage tab that controls which vSphere Storage Policies are available. Compare this tab with a working namespace that has successfully deployed TKG clusters.",
+    "If no storage policy is assigned to the namespace, the supervisor cannot create PersistentVolumeClaims for TKG node disks. The cluster stays in Provisioning indefinitely — the supervisor keeps retrying but the PVCs remain unbound because there is no policy to map them to a datastore.",
+    "Add a storage policy via the namespace's Storage tab: click Add Storage and select a policy that covers the datastores in your environment. For a vSAN-backed lab, 'vSAN Default Storage Policy' is the correct choice. For non-vSAN, use a tag-based policy that maps to your available datastores.",
+    "Go to Workload Management > Namespaces > [namespace] > Storage tab > Add Storage > select vSAN Default Storage Policy (or your environment's policy) > Save. The supervisor retries PVC binding automatically — within 2-3 minutes the TKG cluster status will transition from Provisioning to Running."
+  ],
+  "labRequirements": [
+    "vsan",
+    "supervisor-enabled",
+    "nested-cluster-min-3"
+  ],
+  "certRelevance": [
+    "VCAP-VCF-VKS"
+  ],
+  "learningObjectives": [
+    "Diagnose a stuck TKG cluster by comparing namespace storage configuration with a working namespace",
+    "Understand how vSphere Storage Policies govern PVC binding in supervisor namespaces",
+    "Assign a storage policy to a vSphere namespace via Workload Management",
+    "Verify that TKG cluster provisioning resumes automatically after the storage policy is applied"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}

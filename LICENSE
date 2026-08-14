@@ -1,0 +1,45 @@
+vSphere Lab Wizard — Non-Commercial Community License
+Copyright (c) 2026 CloudITBlog.com
+
+Original repository: https://github.com/redeye365/vsphere-lab-wizard
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, and distribute the Software, subject to the following terms:
+
+1. Permitted use
+   The Software is free to use for personal, educational, and other
+   non-commercial purposes.
+
+2. Commercial use requires permission
+   Any commercial use of the Software — including but not limited to selling
+   it, offering it as part of a paid product or service, using it to deliver
+   paid consulting or training engagements, or white-labelling it under a
+   different name or brand — requires prior written permission from the
+   author. Contact CloudITBlog.com to request commercial use.
+
+3. Attribution
+   Any use or distribution of the Software, or of substantial portions of it,
+   must credit CloudITBlog.com as the original author and include a link to
+   the original repository: https://github.com/redeye365/vsphere-lab-wizard.
+   This attribution requirement applies to personal and non-commercial use as
+   well as to any commercial use approved under Section 2.
+
+4. Forks and redistribution
+   Forking and modifying the Software for personal, educational, or other
+   non-commercial use is welcome, provided the attribution requirement in
+   Section 3 is preserved. Forking, redistributing, or hosting the Software
+   (or a modified version of it) for commercial purposes is prohibited
+   without prior written permission from the author, as described in
+   Section 2.
+
+5. No warranty
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING
+   FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+To request commercial use, redistribution as part of a paid product or
+service, or white-labelling permission, contact CloudITBlog.com.

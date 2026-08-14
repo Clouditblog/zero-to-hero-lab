@@ -1,0 +1,49 @@
+{
+  "id": "ntp-source-mismatch",
+  "name": "NTP Source Mismatch",
+  "description": "VCF bringup or vCenter SSO fails because ESXi hosts and vCenter are pointing to different NTP sources and have drifted beyond the 5-minute tolerance",
+  "difficulty": "easy",
+  "examObjectives": [
+    "VCP-DCV",
+    "VCF 3V0-25.25"
+  ],
+  "topics": [
+    "dns-ntp"
+  ],
+  "customerScenario": "Hi, this is Morgan. We're running the VCF Cloud Builder bringup and it keeps failing at the SSO validation step with a certificate validation error. The Cloud Builder shows all hosts as reachable, DNS checks pass, but SSO just won't come up. We're stuck.",
+  "customerFollowUp": "We set this lab up over a week with different team members handling different components. The domain controller was set up by one person, the ESXi hosts by another, and vCenter by a third. I don't think anyone coordinated on NTP \u2014 each person probably just used whatever NTP server they were used to.",
+  "snapshotName": "",
+  "verifyScript": "verify-ntp-source-mismatch.ps1",
+  "fixSteps": [
+    "Check current time on each ESXi host: SSH in and run 'date', or vCenter > Host > Summary > Time",
+    "Check vCenter time: SSH to VCSA and run 'date'",
+    "Check the domain controller: run 'w32tm /query /status' in a Windows cmd prompt",
+    "Identify which component has drifted \u2014 look for any with more than 5 minutes difference from actual current time",
+    "Point all ESXi hosts to the same NTP source (use the DC as the internal NTP): Host > Configure > System > Time Configuration > Edit > add DC IP, set policy to 'Start and stop with host'",
+    "Configure vCenter to use the same NTP: VAMI (https://vcenter-ip:5480) > Time > NTP > add DC IP > Save and Sync",
+    "Force an immediate NTP sync on ESXi: /etc/init.d/ntpd restart",
+    "Verify all components show the same time (within a few seconds of each other)"
+  ],
+  "hints": [
+    "SSO and certificate validation errors in VMware environments are very often caused by time synchronisation issues. TLS and Kerberos are both time-sensitive \u2014 a drift of more than 5 minutes causes certificate validation to fail entirely. Check the time on each component.",
+    "Compare the time on: ESXi hosts (SSH + date), vCenter (SSH to VCSA + date), and the domain controller (w32tm /query /status). Are they all showing the same time to within a few seconds?",
+    "There's a time drift between components \u2014 likely because different NTP servers were configured by different team members during setup. For VMware environments, all components must use the same NTP hierarchy. The domain controller is typically the best internal NTP source.",
+    "At least one component has drifted beyond 5 minutes from the others. Every component needs to be pointing to the same NTP source and resynced. The DC should be the internal NTP master for the lab, with all ESXi hosts and vCenter pointing to the DC IP.",
+    "For each ESXi host: vCenter > Host > Configure > Time Configuration > Edit > NTP servers: <DC-IP>, startup policy: Start and stop with host. For vCenter: VAMI (https://<vcenter>:5480) > Time > NTP > add <DC-IP> > Save > Sync Now. Then verify all components show the same time."
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin"
+  ],
+  "learningObjectives": [
+    "Explain why time synchronisation within a 5-minute tolerance is mandatory for TLS and Kerberos in VMware environments",
+    "Check and compare system time across ESXi hosts, vCenter, and a domain controller",
+    "Configure a consistent NTP source hierarchy with the domain controller as the internal NTP master",
+    "Force an NTP resync and verify clock alignment before retrying SSO or VCF bringup"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-26",
+  "labRequirements": [
+    "nested-cluster-min-1",
+    "domain-controller"
+  ]
+}

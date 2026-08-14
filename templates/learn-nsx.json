@@ -1,0 +1,38 @@
+{
+  "_type": "lab-template",
+  "_version": 1,
+  "name": "Learn NSX",
+  "description": "A 3-host cluster with NSX-T fully switched on (T0/T1 + DFW) and a BGP-peered VyOS router, so you can practice NSX concepts without also having to design the cluster and network from scratch.",
+  "learningMode": true,
+  "designRationale": {
+    "learningGoal": "technology",
+    "techFocus": "nsx"
+  },
+  "answers": {
+    "discovery": { "useCase": "feature_testing" },
+    "hardware": {
+      "cpuCores": 16,
+      "ramGB": 128,
+      "storageDevices": [{ "type": "nvme", "capacityGB": 512, "capacityUnit": "GB" }],
+      "nicCount": 1
+    },
+    "design": {
+      "esxiVersion": "8.0u3",
+      "vyosEnabled": true,
+      "vyosNetworkMode": "bgp",
+      "mgmtCidr": "192.168.10.0/24",
+      "vmotionCidr": "192.168.20.0/24",
+      "vmCidr": "192.168.30.0/24",
+      "nestedHostCount": 3,
+      "vcpuPerHost": 4,
+      "vramPerHostGB": 24,
+      "nsxEnabled": true,
+      "nsxSize": "small",
+      "nsxTopology": "full",
+      "nsxEdgeCount": 1,
+      "nsxEdgeSize": "medium",
+      "nsxBgpRouteAdvert": "all",
+      "nsxRedistConnected": true
+    }
+  }
+}

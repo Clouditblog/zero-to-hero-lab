@@ -1,0 +1,48 @@
+{
+  "id": "dns-ptr-missing",
+  "name": "DNS PTR Records Missing",
+  "description": "vCenter operations are slow because reverse DNS (PTR) records for ESXi hosts were not restored after a DNS server rebuild",
+  "difficulty": "medium",
+  "examObjectives": [
+    "VCP-DCV",
+    "VCAP-DCV"
+  ],
+  "topics": [
+    "dns-ntp"
+  ],
+  "customerScenario": "Hi, I'm Lee from the platform team. vCenter has been really slow all day \u2014 simple operations that normally take a couple of seconds are taking 30 to 60 seconds. We can log in fine, the hosts show as Connected, but clicking on anything in the vSphere Client is painfully slow. This started after we rebuilt the DNS server last week.",
+  "customerFollowUp": "The DNS rebuild was a version upgrade. The team said they restored all the A records from a backup, but I've just checked the rebuild notes and there's no mention of reverse lookup zones. I don't think those were included in the backup they restored from.",
+  "snapshotName": "",
+  "verifyScript": "verify-dns-ptr-missing.ps1",
+  "fixSteps": [
+    "From the vCenter shell or an ESXi host, test reverse DNS: nslookup <esxi-host-ip> \u2014 does it return a hostname?",
+    "If PTR lookup times out or returns NXDOMAIN, the reverse lookup zone is missing",
+    "Log into the DNS server and check for a reverse lookup zone covering your management subnet",
+    "Create the reverse lookup zone if missing (e.g., for 192.168.10.0/24, zone name: 10.168.192.in-addr.arpa)",
+    "Add a PTR record for each ESXi host and for vCenter (e.g., PTR '11' -> esxi01.lab.local for host at 192.168.10.11)",
+    "Test each: nslookup 192.168.10.11 should return the FQDN",
+    "vCenter performance should recover within a few minutes once PTR records resolve correctly"
+  ],
+  "hints": [
+    "vCenter is uniformly slow after a DNS server rebuild. Slowness affecting all operations (not just one cluster or host) often points to infrastructure-level timeouts. DNS is a frequent culprit \u2014 vCenter relies heavily on DNS for both forward and reverse lookups.",
+    "vCenter performs reverse DNS (PTR) lookups for ESXi hosts during many operations. If PTR records are missing, every lookup waits for the DNS timeout (often 5\u201330 seconds). The team confirmed A records were restored but reverse lookup zones were not mentioned.",
+    "Test reverse DNS from the vCenter server appliance (SSH to VCSA): run nslookup <esxi-host-ip>  or  dig -x <esxi-host-ip>. Does the IP address resolve back to a hostname, or does it time out / return NXDOMAIN?",
+    "The reverse lookup zone for the management subnet is missing from the DNS server. PTR records for ESXi hosts were not included in the backup restore. You need to create the reverse lookup zone and add PTR records for each ESXi host and for vCenter.",
+    "On the DNS server: create a reverse lookup zone for your management subnet (10.168.192.in-addr.arpa for a 192.168.10.0/24 network). Add PTR records: each ESXi host IP maps to its FQDN. Test with nslookup <ip>. vCenter performance should recover within a few minutes once all PTR records resolve successfully."
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin"
+  ],
+  "learningObjectives": [
+    "Explain how missing DNS PTR records cause vCenter performance degradation",
+    "Test forward and reverse DNS resolution from the VCSA using nslookup and dig",
+    "Create a reverse lookup zone and PTR records on a Windows DNS server",
+    "Verify vCenter performance recovery after DNS PTR records are restored"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-26",
+  "labRequirements": [
+    "nested-cluster-min-1",
+    "domain-controller"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "id": "vsan-disk-claimed",
+  "name": "vSAN Can't Claim Disks \u2014 Already Formatted",
+  "description": "vSAN cluster configuration is failing because the disks on the nested hosts were previously formatted with VMFS and vSAN can't claim them.",
+  "difficulty": "medium",
+  "examObjectives": [
+    "VCP-DCV Section 6",
+    "VCAP-DCV Section 4"
+  ],
+  "topics": [
+    "vSAN",
+    "Storage",
+    "Cluster"
+  ],
+  "customerScenario": "We're trying to set up vSAN on our cluster but it's not working. The wizard keeps complaining about the disks. We can see the disks in the host configuration but vSAN won't use them. We've been trying to fix this for a couple of hours.",
+  "customerFollowUp": "These hosts were used for something else before. We thought we'd cleaned them up but maybe not completely.",
+  "snapshotName": "",
+  "verifyScript": "verify-vsan-disk-claimed.ps1",
+  "fixSteps": [
+    "Identify disks with existing partitions via esxcli",
+    "Confirm correct disk identification",
+    "Use partedUtil to clear partition tables",
+    "Retry vSAN disk claim"
+  ],
+  "hints": [
+    "Check the disk status on the affected hosts in vCenter. Go to host configuration, storage, and look at the disk groups. What does vSAN report about the disks?",
+    "Look at the disks in the storage adapter view. Are any of them showing as having existing partitions or file systems?",
+    "vSAN requires disks to be completely empty before it can claim them. If a disk has an existing VMFS datastore or partition table, vSAN will refuse to use it.",
+    "You need to remove the existing partitions from the affected disks. This can be done via esxcli storage core device partition show on the host, then using partedUtil to clear the partition table. This is destructive \u2014 make sure you have the right disk identified before proceeding.",
+    "Run partedUtil mklabel on the affected disks to clear the partition table, then retry the vSAN disk claim. The disks should now be available for vSAN to use."
+  ],
+  "labRequirements": [
+    "nested-cluster-min-3",
+    "vcenter",
+    "vsan"
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin",
+    "VCAP-VCF-Storage"
+  ],
+  "learningObjectives": [
+    "Diagnose why vSAN refuses to claim disks that carry existing partition tables",
+    "Use esxcli to inspect disk partition state on ESXi hosts",
+    "Safely clear existing VMFS or MBR partition tables using partedUtil",
+    "Confirm successful vSAN disk claim after partition table removal"
+  ],
+  "author": "Jon \u2014 CloudITBlog.com",
+  "created": "2026-06-26"
+}

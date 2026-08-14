@@ -1,0 +1,57 @@
+{
+  "id": "vcf-host-commission-ntp-drift",
+  "name": "VCF: Host Commission Fails — NTP Not Synchronised",
+  "description": "Attempting to commission a freshly reimaged ESXi host into SDDC Manager fails during the host validation phase. The validation reports that the host's time is not synchronised — the NTP daemon is not running or the configured NTP server is unreachable.",
+  "difficulty": "medium",
+  "examObjectives": [
+    "3V0-25.25 Section 1"
+  ],
+  "topics": [
+    "vcf",
+    "sddc-manager",
+    "host-commission",
+    "ntp",
+    "esxi",
+    "validation"
+  ],
+  "customerScenario": "We reimaged an ESXi host as a replacement for a failed node and tried to commission it into SDDC Manager. The commission workflow fails during validation with the message 'Host validation failed: NTP is not configured or time offset exceeds the maximum allowed threshold.' The other hosts in the cluster have no NTP issues. The host was reimaged using the same kickstart we use for all hosts, but this was done by someone who was new to the process.",
+  "customerFollowUp": "The new team member says they followed the kickstart runbook but they skipped the post-install section because it said 'optional steps'. That section included NTP configuration. The host is otherwise correctly set up — networking works, DNS resolves, and SDDC Manager can reach it. It's just the NTP validation that's blocking the commission.",
+  "snapshotName": "",
+  "verifyScript": "verify-vcf-host-commission-ntp-drift.ps1",
+  "fixSteps": [
+    "SSH to the ESXi host that is failing commission",
+    "Check the current system time: esxcli system time get",
+    "Check the configured NTP servers: esxcli network ntp list",
+    "Check the NTP daemon status: /etc/init.d/ntpd status",
+    "If no NTP servers are configured, or the configured server is wrong or unreachable, fix this first",
+    "Add the correct NTP server used by other hosts in the environment: esxcli network ntp add --server <ntp-server-ip>",
+    "Enable and start the NTP daemon: esxcli system ntp set --enabled=true",
+    "Restart the NTP daemon to force an immediate sync: /etc/init.d/ntpd restart",
+    "Wait 30-60 seconds, then verify the time is now synchronised: esxcli system time get — compare this to the time on a working host",
+    "Also ensure the NTP daemon is set to start on boot: esxcli network ntp list (the server should show as enabled)",
+    "Return to SDDC Manager and retry the host commission — the NTP validation should now pass"
+  ],
+  "hints": [
+    "SDDC Manager validates hosts before commissioning them to ensure they meet the requirements for joining a VCF environment. NTP synchronisation is one of the strictest checks — a time offset that is too large will cause certificate validation failures and SDDC Manager management operations to break. The host reimaging process skipped NTP configuration. Where on an ESXi host do you check and configure NTP?",
+    "SSH to the failing host and run 'esxcli network ntp list' to see which NTP servers are configured and whether the NTP daemon is enabled. If the output is empty or shows the NTP daemon as disabled, that is your problem. Compare the NTP configuration to a host that passes validation in the same cluster.",
+    "The host has no NTP servers configured because the post-install kickstart steps were skipped. To fix this: use 'esxcli network ntp add --server <ntp-server>' to add the correct NTP server (use the same one as the other cluster hosts — likely the domain controller or an infrastructure NTP source). Then run 'esxcli system ntp set --enabled=true' to enable the daemon.",
+    "After adding the NTP server and enabling the daemon, restart it with '/etc/init.d/ntpd restart'. This forces an immediate sync rather than waiting for the next scheduled sync interval. After 30-60 seconds, run 'esxcli system time get' and compare the output to the current time on a working host — the times should match within a few seconds.",
+    "Fix: SSH to the host > esxcli network ntp add --server <ntp-ip> > esxcli system ntp set --enabled=true > /etc/init.d/ntpd restart > wait 60s > verify with esxcli system time get. Return to SDDC Manager and retry the host commission. The NTP validation will pass once the time offset is within tolerance."
+  ],
+  "labRequirements": [
+    "vcf-sddc-manager",
+    "nested-cluster-min-1"
+  ],
+  "certRelevance": [
+    "VCP-VCF-Admin",
+    "VCP-VCF-Support"
+  ],
+  "learningObjectives": [
+    "Understand that SDDC Manager validates NTP synchronisation before commissioning a host",
+    "Use esxcli commands to check and configure NTP on an ESXi host",
+    "Configure an NTP server and enable the NTP daemon on a freshly deployed ESXi host",
+    "Verify time synchronisation before retrying host commission in SDDC Manager"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}

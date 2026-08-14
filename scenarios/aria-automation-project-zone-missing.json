@@ -1,0 +1,52 @@
+{
+  "id": "aria-automation-project-zone-missing",
+  "name": "Aria Automation: Project Has No Cloud Zone",
+  "description": "An Aria Automation project cannot deploy blueprints because no cloud zone has been assigned to it, causing all deployment requests to fail at scheduling.",
+  "difficulty": "medium",
+  "examObjectives": [
+    "3V0-21.25"
+  ],
+  "topics": [
+    "aria-automation",
+    "cloud-zones",
+    "projects",
+    "blueprints"
+  ],
+  "customerScenario": "Our developers are trying to deploy from the Aria Automation service catalog and every request is failing immediately. The error says something like 'Unable to provision — no resources available in this project'. The exact same blueprints work fine in a different project. We just created this project last week for a new team and it's blocking their work.",
+  "customerFollowUp": "The infrastructure team set up the project. They created it in Aria Automation and added the right team members and roles. But I think they followed an old wiki page from before we added some extra configuration steps. Something in the project setup might have been skipped.",
+  "snapshotName": "",
+  "verifyScript": "verify-aria-automation-project-zone-missing.ps1",
+  "fixSteps": [
+    "Log in to Aria Automation as an administrator",
+    "Navigate to Infrastructure > Projects",
+    "Open the failing project and select the Provisioning tab",
+    "Confirm that no cloud zones are listed under 'Cloud zones and accounts'",
+    "Click Add Zone and select the appropriate cloud zone for your environment",
+    "Set the priority (1 = highest precedence) and optionally configure resource limits",
+    "Save the project configuration",
+    "Re-submit a deployment request from the service catalog — it should now proceed past scheduling"
+  ],
+  "hints": [
+    "The error 'no resources available in this project' means Aria Automation's scheduling engine has nowhere to place the workload. Aria Automation uses projects to scope resources — only cloud zones assigned to a project are available for deployments within it. Where in the Aria Automation admin UI do you control which resources a project can use?",
+    "In Aria Automation, navigate to Infrastructure > Projects and open the failing project. Projects have a Provisioning tab that controls which cloud zones are available. Check whether any cloud zones appear under 'Cloud zones and accounts'.",
+    "The project has no cloud zones assigned. Without a cloud zone, Aria Automation cannot determine where to deploy VMs or other infrastructure — the deployment request fails at scheduling before any blueprint logic runs. The fix is to add the correct cloud zone.",
+    "In the project's Provisioning tab, click Add Zone. You'll see the cloud zones configured in your environment — select the vSphere (or VCF) cloud zone. Set the priority to 1 if it's the only zone. Resource limits are optional but useful for capacity governance.",
+    "Add the cloud zone: Infrastructure > Projects > [project name] > Provisioning tab > Add Zone > select your vSphere cloud zone > set priority 1 > Save. Re-submit a deployment from the service catalog — it should now proceed to provisioning instead of failing at scheduling."
+  ],
+  "labRequirements": [
+    "aria-automation",
+    "vcenter",
+    "nested-cluster-min-1"
+  ],
+  "certRelevance": [
+    "VCAP-VCF-Automation"
+  ],
+  "learningObjectives": [
+    "Understand the relationship between Aria Automation projects and cloud zones",
+    "Diagnose 'no resources available' deployment failures by inspecting project provisioning configuration",
+    "Assign a cloud zone to a project via Infrastructure > Projects",
+    "Verify the fix by confirming a deployment request proceeds past the scheduling stage"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}

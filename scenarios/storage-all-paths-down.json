@@ -1,0 +1,51 @@
+{
+  "id": "storage-all-paths-down",
+  "name": "Datastore Inaccessible \u2014 All Paths Down",
+  "description": "A shared datastore is showing as inaccessible on all hosts. Storage network VLAN misconfiguration has caused all paths to go down simultaneously.",
+  "difficulty": "hard",
+  "examObjectives": [
+    "VCP-DCV Section 6",
+    "VCAP-DCV Section 4"
+  ],
+  "topics": [
+    "Storage",
+    "Networking",
+    "vSAN",
+    "VMFS"
+  ],
+  "customerScenario": "We've got a critical alert \u2014 one of our datastores has gone inaccessible on all hosts at the same time. VMs are showing as invalid and we can't do anything with them. This is a production system and we need it back urgently.",
+  "customerFollowUp": "There was some network maintenance last night. The team said they just updated some switch firmware and didn't change any configuration. But this started happening first thing this morning.",
+  "snapshotName": "",
+  "verifyScript": "verify-storage-all-paths-down.ps1",
+  "fixSteps": [
+    "Check storage vmkernel adapter connectivity",
+    "Verify storage VLAN on port groups",
+    "Check physical switch trunk config after firmware update",
+    "Restore storage VLAN to switch trunk",
+    "Verify paths recover and datastore becomes accessible"
+  ],
+  "hints": [
+    "All paths going down simultaneously across all hosts points to a network-layer issue rather than a storage hardware problem. If it were a storage controller or disk failure, you'd expect some paths to remain. What does this tell you about where to look?",
+    "Check the storage network connectivity from the hosts. Can the hosts reach the storage array/vSAN network? Check the vmkernel adapters used for storage traffic.",
+    "Look at the VLAN configuration on the storage vmkernel adapters and the port groups they're connected to. Compare this against what the physical switch is now presenting after the firmware update.",
+    "Switch firmware updates sometimes reset port configurations to defaults, including VLAN settings. The storage VLAN may have been removed from the trunk after the firmware update, which would cause all paths to drop simultaneously.",
+    "Check the physical switch port configuration for the storage network uplinks. Add the storage VLAN back to the trunk if it was removed. Once the VLAN is restored, the paths should come back and the datastore will become accessible again."
+  ],
+  "labRequirements": [
+    "nested-cluster-min-3",
+    "vcenter",
+    "vsan"
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin",
+    "VCAP-VCF-Storage"
+  ],
+  "learningObjectives": [
+    "Interpret simultaneous All-Paths-Down across all hosts as a network-layer rather than storage-hardware failure",
+    "Inspect vmkernel adapter connectivity and storage port group VLAN assignments",
+    "Identify how a switch firmware update can silently drop VLAN trunk entries",
+    "Restore datastore access by adding the storage VLAN back to the physical switch trunk"
+  ],
+  "author": "Jon \u2014 CloudITBlog.com",
+  "created": "2026-06-26"
+}

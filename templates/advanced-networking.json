@@ -1,0 +1,42 @@
+{
+  "_type": "lab-template",
+  "_version": 1,
+  "name": "Advanced networking",
+  "description": "Multi-host lab built around NSX-T's deeper networking features: full T0/T1/DFW topology, a 2-edge-node cluster, and BGP with specific-prefix route advertisement and redistribution — for practising north-south routing design, not just switching NSX on.",
+  "learningMode": true,
+  "designRationale": {
+    "learningGoal": "technology",
+    "techFocus": "nsx"
+  },
+  "answers": {
+    "discovery": { "useCase": "feature_testing" },
+    "hardware": {
+      "hostCount": 2,
+      "cpuCores": 20,
+      "ramGB": 192,
+      "storageDevices": [{ "type": "nvme", "capacityGB": 1000, "capacityUnit": "GB" }],
+      "nicCount": 2
+    },
+    "design": {
+      "esxiVersion": "8.0u3",
+      "vyosEnabled": true,
+      "vyosNetworkMode": "bgp",
+      "mgmtCidr": "192.168.10.0/24",
+      "vmotionCidr": "192.168.20.0/24",
+      "vmCidr": "192.168.30.0/24",
+      "nestedHostCount": 4,
+      "vcpuPerHost": 4,
+      "vramPerHostGB": 16,
+      "nsxEnabled": true,
+      "nsxSize": "medium",
+      "nsxTopology": "full",
+      "nsxEdgeCount": 2,
+      "nsxEdgeSize": "medium",
+      "nsxBgpRouteAdvert": "specific",
+      "nsxBgpPrefixes": "10.20.0.0/16\n10.30.0.0/16",
+      "nsxRedistConnected": true,
+      "nsxRedistStatic": true,
+      "nsxRedistT1Lb": true
+    }
+  }
+}

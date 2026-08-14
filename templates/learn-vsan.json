@@ -1,0 +1,38 @@
+{
+  "_type": "lab-template",
+  "_version": 1,
+  "name": "Learn vSAN",
+  "description": "3-host nested cluster with vSAN ESA pre-configured (network, architecture, and storage-pool disks already laid out), the fastest way to get hands-on with vSAN without deciding cluster and disk topology from scratch.",
+  "learningMode": true,
+  "designRationale": {
+    "learningGoal": "technology",
+    "techFocus": "vsan"
+  },
+  "answers": {
+    "discovery": { "useCase": "feature_testing" },
+    "hardware": {
+      "cpuCores": 16,
+      "ramGB": 128,
+      "storageDevices": [{ "type": "nvme", "capacityGB": 1000, "capacityUnit": "GB" }],
+      "nicCount": 1
+    },
+    "design": {
+      "esxiVersion": "8.0u3",
+      "vyosEnabled": true,
+      "vyosNetworkMode": "basic",
+      "mgmtCidr": "192.168.10.0/24",
+      "vmotionCidr": "192.168.20.0/24",
+      "vmCidr": "192.168.30.0/24",
+      "vsanEnabled": true,
+      "vsanCidr": "192.168.40.0/24",
+      "vsanArch": "esa",
+      "nestedHostCount": 3,
+      "vcpuPerHost": 4,
+      "vramPerHostGB": 24,
+      "nestedDisks": [
+        { "sizeGB": 200, "purpose": "vsan_storage_pool" },
+        { "sizeGB": 20, "purpose": "local_datastore" }
+      ]
+    }
+  }
+}

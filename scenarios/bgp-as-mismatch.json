@@ -1,0 +1,49 @@
+{
+  "id": "bgp-as-mismatch",
+  "name": "BGP AS Number Mismatch",
+  "description": "T0 BGP peer is down due to AS number mismatch between NSX-T and VyOS",
+  "difficulty": "medium",
+  "examObjectives": [
+    "VCP-NV",
+    "VCAP-NV"
+  ],
+  "topics": [
+    "bgp",
+    "nsx-routing"
+  ],
+  "customerScenario": "Hi, this is Alex from the operations team. Our VMs lost access to the internet about 30 minutes ago. Everything was fine before that \u2014 we haven't changed anything on the VM side. The VMs themselves are running and they can ping each other, but nothing external works at all.",
+  "customerFollowUp": "Actually, now that you mention it, one of our junior engineers was doing some 'cleanup' on the VyOS router config last night. He said he didn't change anything important, just tidied up some BGP settings.",
+  "snapshotName": "",
+  "verifyScript": "verify-bgp-as-mismatch.ps1",
+  "fixSteps": [
+    "In NSX-T Manager, go to Networking > Connectivity > Tier-0 Gateways and note the Local AS number",
+    "SSH to the VyOS router and run: show protocols bgp summary",
+    "Check the remote-as configured for the NSX-T peer: show configuration commands | grep 'remote-as'",
+    "Identify the mismatch (e.g., NSX-T says AS 65001 but VyOS expects AS 65002)",
+    "Fix in VyOS: set protocols bgp neighbor <NSX-T-IP> remote-as <correct-AS>  then  commit save",
+    "Verify the BGP session comes up: show protocols bgp summary \u2014 peer should show Established"
+  ],
+  "hints": [
+    "The VMs can ping each other but can't reach anything external. This tells you the issue is at the routing layer between NSX-T and its upstream peer, not the VM network itself. Where does north-south traffic leave NSX-T?",
+    "The T0 gateway handles north-south routing and peers with VyOS over BGP. If that BGP session is down, no routes are exchanged and external traffic has no path. Check the BGP session status on the T0.",
+    "In NSX-T Manager go to Networking > Connectivity > Tier-0 Gateways, expand the T0 and look at the BGP neighbor status. What state is it in \u2014 Established, Active, or Idle?",
+    "A BGP session stays in Active or Idle when the AS numbers don't match. Check the Local AS on the T0 in NSX-T, then SSH to VyOS and check what AS it expects for the NSX-T peer using: show configuration commands | grep bgp",
+    "The T0 Local AS is 65001 but VyOS has remote-as 65002 for the NSX-T peer (or vice versa). On VyOS run: set protocols bgp neighbor <NSX-T-IP> remote-as 65001  then  commit save. The BGP session will re-establish within seconds."
+  ],
+  "certRelevance": [
+    "VCAP-VCF-Networking"
+  ],
+  "learningObjectives": [
+    "Diagnose a BGP session failure between NSX-T T0 and an upstream VyOS router",
+    "Identify AS number mismatches by comparing NSX-T and VyOS BGP peer configuration",
+    "Understand how BGP session state (Active / Idle / Established) maps to north-south routing health",
+    "Correct a BGP peer configuration mismatch to restore external connectivity"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-26",
+  "labRequirements": [
+    "nsx",
+    "vyos",
+    "nested-cluster-min-3"
+  ]
+}

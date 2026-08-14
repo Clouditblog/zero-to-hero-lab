@@ -1,0 +1,51 @@
+{
+  "id": "nsx-dfw-blocking",
+  "name": "Application Servers Can't Communicate \u2014 DFW Rule Too Restrictive",
+  "description": "Two application servers on NSX segments can't reach each other after a DFW policy was applied. A deny rule is matching traffic it shouldn't.",
+  "difficulty": "medium",
+  "examObjectives": [
+    "VCP-NV Section 4",
+    "VCAP-NV Section 3",
+    "3V0-25.25 Section 3"
+  ],
+  "topics": [
+    "NSX",
+    "DFW",
+    "Security",
+    "Micro-segmentation"
+  ],
+  "customerScenario": "We've just migrated two of our application servers to the new NSX environment and now they can't talk to each other. The application is broken. The network team says the physical cables are fine and the servers can ping their default gateway but not each other.",
+  "customerFollowUp": "We did apply a new security policy to the NSX environment as part of the migration. It was supposed to be a standard template but maybe something in it is too strict.",
+  "snapshotName": "",
+  "verifyScript": "verify-dfw-blocking.ps1",
+  "fixSteps": [
+    "Check effective DFW rules on affected VMs",
+    "Identify deny rule matching east-west traffic",
+    "Add allow rule above deny for server-to-server traffic",
+    "Verify application connectivity restored"
+  ],
+  "hints": [
+    "Since the servers can reach their gateway but not each other, this looks like an east-west traffic issue rather than routing. Where would you start investigating east-west traffic in an NSX environment?",
+    "Check the NSX Distributed Firewall rules applied to the affected VMs. Use the NSX Manager UI or API to view effective DFW rules for each VM.",
+    "Look for any deny rules that could be matching traffic between the two servers. Pay attention to rule ordering \u2014 NSX DFW processes rules top to bottom and stops at the first match.",
+    "There is a deny rule applied to the security group containing both servers that is blocking east-west traffic within the group. The rule was intended to block external access but is matching internal traffic too due to an overly broad destination.",
+    "Edit the DFW rule to narrow the destination scope, or add a specific allow rule above the deny rule for traffic between the two servers. Test connectivity after each change."
+  ],
+  "labRequirements": [
+    "nested-cluster",
+    "vcenter",
+    "nsx",
+    "nsx-dfw"
+  ],
+  "certRelevance": [
+    "VCAP-VCF-Networking"
+  ],
+  "learningObjectives": [
+    "Interpret effective DFW rule sets applied to individual VMs in NSX",
+    "Identify how rule ordering causes deny rules to match unintended east-west traffic",
+    "Distinguish between perimeter and micro-segmentation DFW rule intent",
+    "Restore application connectivity by adding targeted allow rules above broad deny rules"
+  ],
+  "author": "Jon \u2014 CloudITBlog.com",
+  "created": "2026-06-26"
+}

@@ -1,0 +1,49 @@
+{
+  "id": "hosts-file-ordering",
+  "name": "Hosts File Duplicate Entry",
+  "description": "vCenter operations fail intermittently because the VCSA /etc/hosts file has a duplicate entry pointing the vCenter FQDN to the wrong IP",
+  "difficulty": "medium",
+  "examObjectives": [
+    "VCP-DCV",
+    "VCAP-DCV"
+  ],
+  "topics": [
+    "dns-ntp"
+  ],
+  "customerScenario": "Hi, I'm Sam from the platform team. vCenter is behaving really strangely \u2014 operations succeed sometimes and fail other times. We'll try something, it fails with a connection error, retry immediately and it works fine. This has been happening for two days and started after we applied a vCenter patch.",
+  "customerFollowUp": "The patch process required some manual steps. The engineer who applied it mentioned adding some entries to a configuration file because 'DNS was too slow during the restart sequence'. I don't know exactly what they changed, but it was something to do with hostname resolution.",
+  "snapshotName": "",
+  "verifyScript": "verify-hosts-file-ordering.ps1",
+  "fixSteps": [
+    "SSH to the vCenter Server Appliance (VCSA)",
+    "Review the /etc/hosts file: cat /etc/hosts",
+    "Look for duplicate entries for the vCenter FQDN or short hostname",
+    "There may be both a loopback entry (127.0.x.x) and a real IP entry for the same hostname, with the wrong one appearing first",
+    "Edit /etc/hosts: vi /etc/hosts",
+    "Remove any duplicate or incorrect entries \u2014 the correct line should be: <vcenter-real-ip>  <vcenter-fqdn>  <short-hostname>",
+    "Ensure 127.0.0.1 only maps to 'localhost' and ::1 only maps to 'localhost ipv6-localhost ipv6-loopback'",
+    "Save the file and verify: nslookup <vcenter-fqdn> should consistently return the correct IP"
+  ],
+  "hints": [
+    "Intermittent failures that immediately succeed on retry often indicate that lookups are alternating between two different results \u2014 one correct and one incorrect. Since this started after manual edits to a configuration file, check what was changed.",
+    "SSH to the VCSA and inspect /etc/hosts with: cat /etc/hosts. The /etc/hosts file takes precedence over DNS. If there are duplicate or incorrect entries for the vCenter hostname, resolution will alternate between them on each query.",
+    "Look at every line in /etc/hosts that contains the vCenter FQDN or short hostname. Are there multiple lines? Does any line point the vCenter name to 127.0.0.1 or a wrong IP address? The first matching entry wins \u2014 a wrong first entry causes every other lookup to fail.",
+    "The /etc/hosts file has a duplicate entry for the vCenter FQDN \u2014 one with the real IP and one with a stale or loopback IP, with the incorrect one listed first. This causes roughly half of all internal lookups to resolve to the wrong address.",
+    "Edit /etc/hosts (vi /etc/hosts) and remove the incorrect duplicate entry. The correct line should be: <vcenter-real-ip>  <vcenter-fqdn>  <short-name>. The line starting with 127.0.0.1 should only have 'localhost'. Save and test with nslookup \u2014 should consistently return the correct IP every time."
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin",
+    "VCAP-VCF-Storage"
+  ],
+  "learningObjectives": [
+    "Explain how /etc/hosts takes precedence over DNS on the VCSA and why duplicate entries cause intermittent failures",
+    "Inspect and interpret the VCSA /etc/hosts file to identify conflicting hostname mappings",
+    "Remove duplicate or incorrect entries from /etc/hosts without disrupting vCenter services",
+    "Verify consistent hostname resolution after correcting /etc/hosts"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-26",
+  "labRequirements": [
+    "nested-cluster-min-1"
+  ]
+}

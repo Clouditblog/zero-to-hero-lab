@@ -1,0 +1,51 @@
+{
+  "id": "local-datastore-missing",
+  "name": "Local Datastore Missing Before vSAN",
+  "description": "vSAN configuration fails because ESXi hosts have no persistent local datastore, leaving the scratch partition on RAM-based /tmp storage",
+  "difficulty": "medium",
+  "examObjectives": [
+    "VCP-DCV",
+    "VCF 3V0-25.25"
+  ],
+  "topics": [
+    "storage",
+    "vsan"
+  ],
+  "customerScenario": "Hi, this is the platform team. We're trying to configure vSAN on our three-node cluster and it keeps failing. The vSAN wizard shows all three hosts as 'Not Compatible'. When we click into each host it mentions something about scratch partitions not being configured or no compatible disks. The hosts otherwise look healthy.",
+  "customerFollowUp": "We're running all-NVMe disks and assumed vSAN ESA would just claim them all automatically. We didn't create any datastores beforehand because we thought vSAN handled everything from scratch. We may have also skipped through the scratch partition step during ESXi installation because we were in a rush.",
+  "snapshotName": "",
+  "verifyScript": "verify-local-datastore-missing.ps1",
+  "fixSteps": [
+    "Check the scratch partition on each ESXi host: Host > Configure > System > Advanced System Settings > filter for 'ScratchConfig.ConfiguredScratchLocation'",
+    "If it shows /tmp/scratch, the scratch is on RAM and persistent storage is needed",
+    "Check available local storage: Host > Configure > Storage > Storage Devices \u2014 identify a local disk suitable for a small VMFS datastore",
+    "Create a local VMFS datastore: Host > Configure > Storage > Datastores > New Datastore > VMFS > select a local disk (not one reserved for vSAN) > complete the wizard",
+    "Set the scratch location: Advanced System Settings > ScratchConfig.ConfiguredScratchLocation = /vmfs/volumes/<your-new-datastore>/.locker",
+    "Reboot the host to apply the scratch configuration change",
+    "Repeat for each host in the cluster",
+    "After all three hosts have been rebooted with scratch configured, retry the vSAN configuration wizard \u2014 hosts should now show as Compatible"
+  ],
+  "hints": [
+    "The vSAN wizard shows 'Not Compatible' with scratch partition errors. vSAN requires ESXi hosts to have a properly configured scratch partition on persistent local storage before vSAN can be configured. The scratch partition cannot be in RAM. This is a prerequisite.",
+    "The scratch partition error means ESXi is currently using /tmp (a RAM-based location) as its scratch partition \u2014 a fallback used when no persistent local storage is present. Before configuring vSAN, each host needs at least a small local VMFS datastore so the scratch partition can be placed on persistent storage.",
+    "On each host: go to Configure > System > Advanced System Settings and search for ScratchConfig.ConfiguredScratchLocation. If this shows /tmp/scratch or another RAM-based path, you need to create a local VMFS datastore first. Check Configure > Storage > Storage Devices for available local disks.",
+    "Create a local VMFS datastore on a local disk (can be small \u2014 just for scratch, not for vSAN capacity). In vCenter: Host > Configure > Storage > Datastores > Add Datastore > VMFS > select a local disk not reserved for vSAN. Then update the scratch setting to point to this new datastore and reboot the host.",
+    "For each of the three hosts: (1) Create a local VMFS datastore (Host > Configure > Storage > Datastores > New Datastore > VMFS). (2) Set ScratchConfig.ConfiguredScratchLocation = /vmfs/volumes/<datastore-name>/.locker in Advanced System Settings. (3) Reboot the host. After all three are rebooted, retry the vSAN wizard \u2014 they should now show as Compatible."
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin",
+    "VCAP-VCF-Storage"
+  ],
+  "learningObjectives": [
+    "Explain why vSAN requires a persistent scratch partition before configuration can proceed",
+    "Identify scratch partition location using ESXi Advanced System Settings",
+    "Create a local VMFS datastore and redirect the scratch partition to persistent storage",
+    "Validate that all cluster hosts meet vSAN prerequisites after rebooting"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-26",
+  "labRequirements": [
+    "nested-cluster-min-3",
+    "vsan"
+  ]
+}

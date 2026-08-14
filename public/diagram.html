@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Network Diagram — Zero to Hero Lab</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --text-faint: #484f58;
+    --accent: #58a6ff;
+    --accent-soft: rgba(88,166,255,0.08);
+    --danger: #f85149;
+    --success: #3fb950;
+    --radius: 6px;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .header-brand {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .header-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .header-sep { color: var(--text-faint); }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+
+  .back-link {
+    font-size: 13px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    transition: color .15s, border-color .15s;
+  }
+  .back-link:hover { color: var(--text); border-color: var(--text-dim); }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toolbar-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .btn {
+    font-size: 12px;
+    font-family: inherit;
+    padding: 5px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { color: var(--text); border-color: var(--text-dim); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #0d1117; font-weight: 600; }
+  .btn-primary:hover { filter: brightness(1.1); color: #0d1117; border-color: var(--accent); }
+  .btn.active { color: var(--text); border-color: var(--accent); background: var(--accent-soft); }
+
+  label.btn { cursor: pointer; }
+
+  .zoom-display {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    min-width: 42px;
+    text-align: center;
+  }
+
+  .session-id-field {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 4px 8px;
+    width: 100px;
+  }
+  .session-id-field::placeholder { color: var(--text-faint); }
+
+  /* ── Workspace (canvas + edit panel side by side) ── */
+  .workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ── Canvas area ── */
+  .canvas-wrap {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    cursor: grab;
+    background: #f0f4f8;
+    min-width: 0;
+  }
+  .canvas-wrap.grabbing { cursor: grabbing; }
+
+  /* ── Edit panel ── */
+  .edit-panel {
+    display: none;
+    flex-direction: column;
+    width: 400px;
+    max-width: 45vw;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+  }
+  .edit-panel.open { display: flex; }
+
+  .panel-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .dirty-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: none;
+    flex-shrink: 0;
+  }
+  .dirty-dot.show { display: inline-block; }
+
+  #mermaid-editor {
+    width: 100%;
+    height: 260px;
+    resize: vertical;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 10px;
+    tab-size: 2;
+  }
+  #mermaid-editor:focus { outline: 1px solid var(--accent); }
+
+  .editor-error {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--danger);
+    line-height: 1.5;
+    display: none;
+  }
+  .editor-error.show { display: block; }
+
+  .panel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .form-row { margin-bottom: 10px; }
+  .form-row label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .form-row input[type="text"],
+  .form-row select {
+    width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  .connections-list {
+    max-height: 140px;
+    overflow-y: auto;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 8px;
+  }
+  .connections-list .empty-hint { font-size: 11px; color: var(--text-faint); }
+  .connections-list label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text);
+    padding: 3px 0;
+    cursor: pointer;
+  }
+  .connections-list input { margin: 0; flex-shrink: 0; }
+
+  #diagram-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  .diagram-inner {
+    position: absolute;
+    transform-origin: 0 0;
+    user-select: none;
+  }
+
+  .diagram-inner svg {
+    display: block;
+    max-width: none;
+  }
+
+  /* ── Empty / loading states ── */
+  .empty-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--text-faint);
+    font-size: 14px;
+    text-align: center;
+    padding: 40px;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    opacity: .4;
+  }
+
+  .empty-state p { max-width: 400px; line-height: 1.6; }
+
+  /* ── Legend panel ── */
+  .legend {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 12px;
+    min-width: 180px;
+    z-index: 10;
+  }
+
+  .legend-title {
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    color: var(--text-dim);
+  }
+
+  .legend-line {
+    width: 28px;
+    height: 2px;
+    flex-shrink: 0;
+  }
+  .legend-line.solid { background: var(--text-faint); }
+  .legend-line.dashed {
+    background: repeating-linear-gradient(
+      90deg,
+      var(--text-faint) 0, var(--text-faint) 4px,
+      transparent 4px, transparent 8px
+    );
+  }
+
+  /* ── Fullscreen overlay ── */
+  .fullscreen-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+  }
+  .fullscreen-overlay.hidden { display: none; }
+
+  .fullscreen-toolbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .fullscreen-canvas {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    cursor: grab;
+    background: #f0f4f8;
+  }
+  .fullscreen-canvas.grabbing { cursor: grabbing; }
+
+  /* ── Status bar ── */
+  .statusbar {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 4px 16px;
+    font-size: 11px;
+    color: var(--text-faint);
+    display: flex;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  #status-msg { color: var(--text-dim); }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--text);
+    opacity: 0;
+    transition: opacity .2s;
+    pointer-events: none;
+    z-index: 200;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-brand">Zero to Hero Lab</span>
+  <span class="header-sep">/</span>
+  <span class="header-title">Network Diagram</span>
+  <div class="header-actions">
+    <a href="/" class="back-link">&larr; Back to wizard</a>
+  </div>
+</div>
+
+<div class="toolbar">
+  <!-- Load options -->
+  <div class="toolbar-group">
+    <label class="btn" title="Load a lab-spec.json file from disk">
+      Open spec.json
+      <input type="file" id="file-input" accept=".json" style="display:none">
+    </label>
+
+    <input type="text" class="session-id-field" id="session-id-input" placeholder="session id" title="8-character session ID from the wizard">
+    <button class="btn" id="btn-load-session" title="Load diagram from active wizard session">Load session</button>
+  </div>
+
+  <div class="toolbar-sep"></div>
+
+  <!-- Zoom -->
+  <div class="toolbar-group">
+    <button class="btn" id="btn-zoom-out" title="Zoom out">&#x2212;</button>
+    <span class="zoom-display" id="zoom-display">100%</span>
+    <button class="btn" id="btn-zoom-in" title="Zoom in">+</button>
+    <button class="btn" id="btn-zoom-fit" title="Fit to window">Fit</button>
+  </div>
+
+  <div class="toolbar-sep"></div>
+
+  <!-- Download -->
+  <div class="toolbar-group">
+    <button class="btn btn-primary" id="btn-download-svg" disabled title="Download as SVG">Download SVG</button>
+    <button class="btn" id="btn-download-png" disabled title="Download as PNG (requires diagram to be rendered)">Download PNG</button>
+  </div>
+
+  <div class="toolbar-sep"></div>
+
+  <button class="btn" id="btn-fullscreen" disabled title="Fullscreen view">&#x26F6; Fullscreen</button>
+
+  <div class="toolbar-sep"></div>
+
+  <div class="toolbar-group">
+    <button class="btn" id="btn-toggle-edit" disabled title="Edit the Mermaid source directly">
+      <span class="dirty-dot" id="edit-dirty-dot"></span>&#x270E; Edit
+    </button>
+    <button class="btn" id="btn-add-component" disabled title="Add a component not captured by the wizard">+ Component</button>
+  </div>
+</div>
+
+<div class="workspace">
+  <div class="canvas-wrap" id="canvas-wrap">
+    <div id="diagram-inner" class="diagram-inner"></div>
+
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">&#x1F5A7;</div>
+      <p>Load a <strong>lab-spec.json</strong> file or enter your wizard session ID to render the network diagram.</p>
+      <p style="font-size:12px;">The session ID is the 8-character code shown in the download links after you generate.</p>
+    </div>
+
+    <div class="legend" id="legend" style="display:none">
+      <div class="legend-title">Key</div>
+      <div class="legend-item"><div class="legend-line solid"></div>Managed / routed connection</div>
+      <div class="legend-item"><div class="legend-line dashed"></div>Same-segment / hosted relationship</div>
+    </div>
+  </div>
+
+  <div class="edit-panel" id="edit-panel">
+    <div class="panel-section">
+      <div class="panel-section-title">Mermaid source</div>
+      <textarea id="mermaid-editor" spellcheck="false" placeholder="graph TD&#10;..."></textarea>
+      <div class="editor-error" id="editor-error"></div>
+      <div class="panel-actions">
+        <button class="btn btn-primary" id="btn-save-changes" title="Persist this edit back to the session">Save changes</button>
+        <button class="btn" id="btn-panel-download-svg" title="Download as SVG">Download SVG</button>
+        <button class="btn" id="btn-copy-mermaid" title="Copy Mermaid source to clipboard">Copy Mermaid source</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Add component</div>
+      <div class="form-row">
+        <label for="comp-name">Name</label>
+        <input type="text" id="comp-name" placeholder="e.g. VIS Appliance">
+      </div>
+      <div class="form-row">
+        <label for="comp-ip">IP address (optional)</label>
+        <input type="text" id="comp-ip" placeholder="e.g. 192.168.50.60">
+      </div>
+      <div class="form-row">
+        <label for="comp-type">Type</label>
+        <select id="comp-type">
+          <option value="router">Router</option>
+          <option value="switch">Switch</option>
+          <option value="server">Server</option>
+          <option value="vm">VM</option>
+          <option value="appliance" selected>Appliance</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Connections</label>
+        <div class="connections-list" id="connections-list">
+          <span class="empty-hint">Load a diagram first.</span>
+        </div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn btn-primary" id="btn-add-component-submit">Add to diagram</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen overlay -->
+<div class="fullscreen-overlay hidden" id="fullscreen-overlay">
+  <div class="fullscreen-toolbar">
+    <span style="font-size:13px;font-weight:600;color:var(--text-dim);">Network Diagram</span>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn" id="btn-fs-zoom-out">&#x2212;</button>
+      <span class="zoom-display" id="fs-zoom-display">100%</span>
+      <button class="btn" id="btn-fs-zoom-in">+</button>
+      <button class="btn" id="btn-fs-fit">Fit</button>
+      <button class="btn" id="btn-fs-close">&#x2715; Close</button>
+    </div>
+  </div>
+  <div class="fullscreen-canvas" id="fs-canvas">
+    <div id="fs-diagram-inner" class="diagram-inner"></div>
+  </div>
+</div>
+
+<div class="statusbar">
+  <span id="status-msg">No diagram loaded.</span>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Mermaid served locally by the app (see /vendor/mermaid.min.js in server.js) — no CDN dependency -->
+<script src="/vendor/mermaid.min.js"></script>
+<script>
+'use strict';
+
+// htmlLabels: false -- keeps multi-line node labels as SVG <tspan> line breaks
+// instead of an HTML <br> inside a foreignObject, so the SVG stays valid XML
+// (matters for Download SVG / opening network-diagram.svg directly in a browser,
+// which parses .svg with a strict XML parser).
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'default',
+  securityLevel: 'antiscript',
+  flowchart: { curve: 'basis', htmlLabels: false }
+});
+
+// ── State ──────────────────────────────────────────────────────────────────
+
+let currentMermaid = null;
+let currentSpec = null;
+let renderedSvg = null;
+let currentSessionId = null;   // set when loaded via a wizard session — required to Save changes
+let editorSynced = false;      // whether #mermaid-editor reflects the last loaded/saved diagram
+let editorDirty = false;
+let editorHasError = false;
+
+// Main canvas pan/zoom
+let scale = 1;
+let offsetX = 0;
+let offsetY = 0;
+let dragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragOriginX = 0;
+let dragOriginY = 0;
+
+// Fullscreen pan/zoom
+let fsScale = 1;
+let fsOffsetX = 0;
+let fsOffsetY = 0;
+let fsDragging = false;
+let fsDragStartX = 0;
+let fsDragStartY = 0;
+let fsDragOriginX = 0;
+let fsDragOriginY = 0;
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+
+const canvasWrap    = document.getElementById('canvas-wrap');
+const diagramInner  = document.getElementById('diagram-inner');
+const emptyState    = document.getElementById('empty-state');
+const legend        = document.getElementById('legend');
+const zoomDisplay   = document.getElementById('zoom-display');
+const statusMsg     = document.getElementById('status-msg');
+const toast         = document.getElementById('toast');
+
+const fsOverlay     = document.getElementById('fullscreen-overlay');
+const fsCanvas      = document.getElementById('fs-canvas');
+const fsDiagramInner= document.getElementById('fs-diagram-inner');
+const fsZoomDisplay = document.getElementById('fs-zoom-display');
+
+const editPanel      = document.getElementById('edit-panel');
+const mermaidEditor   = document.getElementById('mermaid-editor');
+const editorError     = document.getElementById('editor-error');
+const editDirtyDot    = document.getElementById('edit-dirty-dot');
+const connectionsList = document.getElementById('connections-list');
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+
+let toastTimer = null;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+
+// Self-close any bare void HTML tag (<br>, <img>, <hr>, <input>, <meta>, <link>) left in
+// a Mermaid-rendered SVG string. Mermaid's HTML labels can leave these unclosed -- valid
+// loose HTML, invalid XML -- and Download SVG / opening the file directly parses it with
+// a strict XML parser, so a malformed file fails to render at all. Idempotent.
+function fixSvgVoidTags(svgStr) {
+  return svgStr.replace(/<(br|img|hr|input|meta|link)((?:\s[^>]*)?)\/?>/gi, (m, tag, attrs) => {
+    const cleanAttrs = attrs.replace(/\/\s*$/, '');
+    return `<${tag}${cleanAttrs}/>`;
+  });
+}
+
+async function renderDiagram(mermaidSrc, spec) {
+  currentMermaid = mermaidSrc;
+  currentSpec = spec;
+
+  // A fresh load (new session, new file, new spec) invalidates whatever's in the
+  // editor — it'll be re-synced from currentMermaid next time edit mode is opened.
+  editorSynced = false;
+  setDirty(false);
+
+  statusMsg.textContent = 'Rendering…';
+  emptyState.style.display = 'none';
+
+  console.log('[diagram] mermaid source (' + (mermaidSrc ? mermaidSrc.length : 0) + ' chars):\n', mermaidSrc);
+
+  try {
+    const id = 'diag-' + Date.now();
+    let { svg } = await mermaid.render(id, mermaidSrc);
+    svg = fixSvgVoidTags(svg);
+    renderedSvg = svg;
+
+    diagramInner.innerHTML = svg;
+    fsDiagramInner.innerHTML = svg;
+
+    // Remove fixed width/height from the SVG so it scales naturally
+    const svgEl = diagramInner.querySelector('svg');
+    if (svgEl) {
+      svgEl.removeAttribute('width');
+      svgEl.removeAttribute('height');
+      svgEl.style.width = '';
+      svgEl.style.height = '';
+    }
+    const fsSvgEl = fsDiagramInner.querySelector('svg');
+    if (fsSvgEl) {
+      fsSvgEl.removeAttribute('width');
+      fsSvgEl.removeAttribute('height');
+    }
+
+    legend.style.display = '';
+    document.getElementById('btn-download-svg').disabled = false;
+    document.getElementById('btn-download-png').disabled = false;
+    document.getElementById('btn-fullscreen').disabled = false;
+    document.getElementById('btn-toggle-edit').disabled = false;
+    document.getElementById('btn-add-component').disabled = false;
+    refreshConnectionsList(mermaidSrc);
+
+    fitToWindow(false);
+    fsFitToWindow(false);
+
+    const nc = spec?.nestedCluster || {};
+    const phCount = (spec?.physicalHosts || []).length || 1;
+    const label = spec?.esxiVersion?.label || spec?.meta?.esxiVersionLabel || '';
+    const cluster = nc.clusterName || spec?.meta?.clusterName || '';
+    const hosts = nc.hostCount || spec?.meta?.nestedHostCount || 0;
+    const phosts = phCount !== 1 ? phCount : (spec?.meta?.physicalHostCount || phCount);
+    statusMsg.textContent = `Loaded: ${hosts} nested hosts across ${phosts} physical host${phosts > 1 ? 's' : ''} · ${cluster} · ${label}`;
+  } catch (err) {
+    statusMsg.textContent = 'Render error: ' + err.message;
+    emptyState.style.display = 'flex';
+    emptyState.querySelector('p').textContent = 'Diagram render failed: ' + err.message;
+  }
+}
+
+// ── Load from spec object ──────────────────────────────────────────────────
+
+async function loadFromSpec(spec) {
+  // A file-based load has no server session behind it, so Save changes can't persist
+  // anywhere — Copy Mermaid source / Download SVG remain the way to keep an edit.
+  currentSessionId = null;
+
+  // The spec doesn't contain the mermaid source — request it from the server
+  // if it was saved (has a generated output), otherwise generate via a
+  // dedicated endpoint. Since spec is already parsed, POST it for mermaid source.
+  try {
+    const res = await fetch('/api/diagram/from-spec', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spec })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Server error');
+    await renderDiagram(data.mermaid, spec);
+    if (data.edited) showToast('Showing a previously saved edit from this spec file');
+  } catch (err) {
+    statusMsg.textContent = 'Error: ' + err.message;
+    showToast('Failed to load spec: ' + err.message);
+  }
+}
+
+// ── File input ────────────────────────────────────────────────────────────
+
+document.getElementById('file-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+  statusMsg.textContent = 'Reading file…';
+  try {
+    const text = await file.text();
+    const spec = JSON.parse(text);
+    await loadFromSpec(spec);
+  } catch (err) {
+    statusMsg.textContent = 'Error reading file: ' + err.message;
+    showToast('Invalid JSON file');
+  }
+});
+
+// ── Session load ──────────────────────────────────────────────────────────
+
+document.getElementById('btn-load-session').addEventListener('click', async () => {
+  const id = document.getElementById('session-id-input').value.trim();
+  if (!id) { showToast('Enter a session ID first'); return; }
+
+  statusMsg.textContent = 'Loading session ' + id + '…';
+  try {
+    const res = await fetch(`/api/diagram/${id}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Not found');
+    currentSessionId = id;
+    await renderDiagram(data.mermaid, { meta: data.meta });
+    if (data.edited) showToast('Showing your saved edit for this session');
+  } catch (err) {
+    currentSessionId = null;
+    statusMsg.textContent = 'Error: ' + err.message;
+    showToast('Session not found: ' + err.message);
+  }
+});
+
+// Check for ?id= or ?session= query param on load
+(function autoLoadFromQuery() {
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id') || params.get('session');
+  if (id) {
+    document.getElementById('session-id-input').value = id;
+    document.getElementById('btn-load-session').click();
+    return;
+  }
+
+  // No session id — this is likely the review screen's "Open in viewer" link, opened
+  // before Generate has run (so there's no session yet). It stashes the in-progress
+  // spec into localStorage before navigating, which any same-origin tab can read
+  // regardless of how it was opened. Consume-once: clear it after loading so a later
+  // plain visit to /diagram doesn't confusingly resurface a stale preview.
+  try {
+    const stashed = localStorage.getItem('vsphere-diagram-preview-spec');
+    if (stashed) {
+      localStorage.removeItem('vsphere-diagram-preview-spec');
+      loadFromSpec(JSON.parse(stashed));
+    }
+  } catch { /* malformed/unavailable — fall through to the empty state */ }
+})();
+
+// ── Download ──────────────────────────────────────────────────────────────
+
+function downloadSvg() {
+  if (!renderedSvg) return;
+  const blob = new Blob([renderedSvg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'network-diagram.svg';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('SVG downloaded');
+}
+
+document.getElementById('btn-download-svg').addEventListener('click', downloadSvg);
+document.getElementById('btn-panel-download-svg').addEventListener('click', downloadSvg);
+
+document.getElementById('btn-download-png').addEventListener('click', async () => {
+  if (!renderedSvg) return;
+  try {
+    const svgEl = diagramInner.querySelector('svg');
+    const bbox = svgEl ? svgEl.getBBox() : null;
+    const w = bbox ? Math.ceil(bbox.width + bbox.x * 2) : 1200;
+    const h = bbox ? Math.ceil(bbox.height + bbox.y * 2) : 800;
+
+    const img = new Image();
+    const blob = new Blob([renderedSvg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = url;
+    });
+
+    const canvas = document.createElement('canvas');
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.fillStyle = '#f0f4f8';
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(url);
+
+    canvas.toBlob((pngBlob) => {
+      const pngUrl = URL.createObjectURL(pngBlob);
+      const a = document.createElement('a');
+      a.href = pngUrl;
+      a.download = 'network-diagram.png';
+      a.click();
+      URL.revokeObjectURL(pngUrl);
+      showToast('PNG downloaded');
+    });
+  } catch (err) {
+    showToast('PNG export failed: ' + err.message);
+  }
+});
+
+// ── Zoom / pan — main canvas ───────────────────────────────────────────────
+
+function applyTransform() {
+  diagramInner.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+  zoomDisplay.textContent = Math.round(scale * 100) + '%';
+}
+
+function fitToWindow(animate) {
+  const svgEl = diagramInner.querySelector('svg');
+  if (!svgEl) return;
+  const cw = canvasWrap.clientWidth;
+  const ch = canvasWrap.clientHeight;
+  const sw = svgEl.scrollWidth || svgEl.getBoundingClientRect().width || 800;
+  const sh = svgEl.scrollHeight || svgEl.getBoundingClientRect().height || 600;
+  const fit = Math.min(cw / sw, ch / sh, 1.5) * 0.9;
+  scale = fit;
+  offsetX = (cw - sw * scale) / 2;
+  offsetY = (ch - sh * scale) / 2;
+  applyTransform();
+}
+
+document.getElementById('btn-zoom-in').addEventListener('click', () => {
+  scale = Math.min(scale * 1.25, 5);
+  applyTransform();
+});
+
+document.getElementById('btn-zoom-out').addEventListener('click', () => {
+  scale = Math.max(scale / 1.25, 0.1);
+  applyTransform();
+});
+
+document.getElementById('btn-zoom-fit').addEventListener('click', () => fitToWindow(true));
+
+canvasWrap.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = canvasWrap.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  const newScale = Math.max(0.1, Math.min(5, scale * factor));
+  offsetX = mx - (mx - offsetX) * (newScale / scale);
+  offsetY = my - (my - offsetY) * (newScale / scale);
+  scale = newScale;
+  applyTransform();
+}, { passive: false });
+
+canvasWrap.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  dragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragOriginX = offsetX;
+  dragOriginY = offsetY;
+  canvasWrap.classList.add('grabbing');
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  offsetX = dragOriginX + (e.clientX - dragStartX);
+  offsetY = dragOriginY + (e.clientY - dragStartY);
+  applyTransform();
+});
+
+window.addEventListener('mouseup', () => {
+  dragging = false;
+  canvasWrap.classList.remove('grabbing');
+});
+
+// Touch pan
+canvasWrap.addEventListener('touchstart', (e) => {
+  if (e.touches.length !== 1) return;
+  dragging = true;
+  dragStartX = e.touches[0].clientX;
+  dragStartY = e.touches[0].clientY;
+  dragOriginX = offsetX;
+  dragOriginY = offsetY;
+}, { passive: true });
+
+canvasWrap.addEventListener('touchmove', (e) => {
+  if (!dragging || e.touches.length !== 1) return;
+  e.preventDefault();
+  offsetX = dragOriginX + (e.touches[0].clientX - dragStartX);
+  offsetY = dragOriginY + (e.touches[0].clientY - dragStartY);
+  applyTransform();
+}, { passive: false });
+
+canvasWrap.addEventListener('touchend', () => { dragging = false; });
+
+// ── Zoom / pan — fullscreen ────────────────────────────────────────────────
+
+function applyFsTransform() {
+  fsDiagramInner.style.transform = `translate(${fsOffsetX}px, ${fsOffsetY}px) scale(${fsScale})`;
+  fsZoomDisplay.textContent = Math.round(fsScale * 100) + '%';
+}
+
+function fsFitToWindow() {
+  const svgEl = fsDiagramInner.querySelector('svg');
+  if (!svgEl) return;
+  const cw = fsCanvas.clientWidth;
+  const ch = fsCanvas.clientHeight;
+  const sw = svgEl.scrollWidth || 800;
+  const sh = svgEl.scrollHeight || 600;
+  const fit = Math.min(cw / sw, ch / sh, 1.5) * 0.9;
+  fsScale = fit;
+  fsOffsetX = (cw - sw * fsScale) / 2;
+  fsOffsetY = (ch - sh * fsScale) / 2;
+  applyFsTransform();
+}
+
+document.getElementById('btn-fs-zoom-in').addEventListener('click', () => {
+  fsScale = Math.min(fsScale * 1.25, 5); applyFsTransform();
+});
+document.getElementById('btn-fs-zoom-out').addEventListener('click', () => {
+  fsScale = Math.max(fsScale / 1.25, 0.1); applyFsTransform();
+});
+document.getElementById('btn-fs-fit').addEventListener('click', fsFitToWindow);
+
+fsCanvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = fsCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  const newScale = Math.max(0.1, Math.min(5, fsScale * factor));
+  fsOffsetX = mx - (mx - fsOffsetX) * (newScale / fsScale);
+  fsOffsetY = my - (my - fsOffsetY) * (newScale / fsScale);
+  fsScale = newScale;
+  applyFsTransform();
+}, { passive: false });
+
+fsCanvas.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  fsDragging = true;
+  fsDragStartX = e.clientX;
+  fsDragStartY = e.clientY;
+  fsDragOriginX = fsOffsetX;
+  fsDragOriginY = fsOffsetY;
+  fsCanvas.classList.add('grabbing');
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!fsDragging) return;
+  fsOffsetX = fsDragOriginX + (e.clientX - fsDragStartX);
+  fsOffsetY = fsDragOriginY + (e.clientY - fsDragStartY);
+  applyFsTransform();
+});
+
+window.addEventListener('mouseup', () => {
+  fsDragging = false;
+  fsCanvas.classList.remove('grabbing');
+});
+
+// ── Fullscreen toggle ─────────────────────────────────────────────────────
+
+document.getElementById('btn-fullscreen').addEventListener('click', () => {
+  fsOverlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  fsFitToWindow();
+});
+
+document.getElementById('btn-fs-close').addEventListener('click', () => {
+  fsOverlay.classList.add('hidden');
+  document.body.style.overflow = '';
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !fsOverlay.classList.contains('hidden')) {
+    fsOverlay.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+});
+
+// ── Edit mode ──────────────────────────────────────────────────────────────
+
+function setDirty(flag) {
+  editorDirty = flag;
+  editDirtyDot.classList.toggle('show', flag);
+}
+
+function openEditPanel() {
+  if (!editorSynced) {
+    mermaidEditor.value = currentMermaid || '';
+    editorSynced = true;
+    setDirty(false);
+    editorError.classList.remove('show');
+    editorHasError = false;
+  }
+  editPanel.classList.add('open');
+  document.getElementById('btn-toggle-edit').classList.add('active');
+  refreshConnectionsList(mermaidEditor.value);
+}
+
+function closeEditPanel() {
+  editPanel.classList.remove('open');
+  document.getElementById('btn-toggle-edit').classList.remove('active');
+}
+
+document.getElementById('btn-toggle-edit').addEventListener('click', () => {
+  if (editPanel.classList.contains('open')) closeEditPanel();
+  else openEditPanel();
+});
+
+document.getElementById('btn-add-component').addEventListener('click', () => {
+  openEditPanel();
+  document.getElementById('comp-name').focus();
+});
+
+// Re-render from the editor's current text on every change, debounced. A bad edit
+// keeps the last good diagram on screen (with an inline error) rather than blanking it.
+let editorDebounceTimer = null;
+mermaidEditor.addEventListener('input', () => {
+  setDirty(true);
+  clearTimeout(editorDebounceTimer);
+  editorDebounceTimer = setTimeout(() => renderFromEditor(mermaidEditor.value), 350);
+});
+
+async function renderFromEditor(mermaidSrc) {
+  try {
+    const id = 'diag-edit-' + Date.now();
+    let { svg } = await mermaid.render(id, mermaidSrc);
+    svg = fixSvgVoidTags(svg);
+    renderedSvg = svg;
+    currentMermaid = mermaidSrc;
+
+    diagramInner.innerHTML = svg;
+    fsDiagramInner.innerHTML = svg;
+    const svgEl = diagramInner.querySelector('svg');
+    if (svgEl) {
+      svgEl.removeAttribute('width');
+      svgEl.removeAttribute('height');
+      svgEl.style.width = '';
+      svgEl.style.height = '';
+    }
+    const fsSvgEl = fsDiagramInner.querySelector('svg');
+    if (fsSvgEl) { fsSvgEl.removeAttribute('width'); fsSvgEl.removeAttribute('height'); }
+
+    editorError.classList.remove('show');
+    editorHasError = false;
+    refreshConnectionsList(mermaidSrc);
+  } catch (err) {
+    editorHasError = true;
+    editorError.textContent = 'Render error: ' + err.message;
+    editorError.classList.add('show');
+  }
+}
+
+document.getElementById('btn-save-changes').addEventListener('click', async () => {
+  if (!currentSessionId) {
+    showToast('No active session — load via a session ID to save. Use Copy Mermaid source or Download SVG to keep this edit for now.');
+    return;
+  }
+  if (editorHasError) {
+    showToast('Fix the Mermaid syntax error before saving');
+    return;
+  }
+  const mermaidSrc = mermaidEditor.value;
+  try {
+    const res = await fetch(`/api/diagram/${currentSessionId}/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mermaid: mermaidSrc })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    currentMermaid = mermaidSrc;
+    setDirty(false);
+    showToast(data.svgGenerated ? 'Saved — network-diagram.svg updated too' : 'Saved to session');
+  } catch (err) {
+    showToast('Save failed: ' + err.message);
+  }
+});
+
+// Clipboard API requires a secure context (HTTPS or localhost) — this app is commonly
+// reached over plain HTTP on a LAN IP (e.g. a Raspberry Pi), so fall back to the
+// execCommand trick there rather than silently failing.
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    throw new Error('insecure context');
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { /* fall through to ok = false */ }
+    document.body.removeChild(ta);
+    return ok;
+  }
+}
+
+document.getElementById('btn-copy-mermaid').addEventListener('click', async () => {
+  const text = editPanel.classList.contains('open') ? mermaidEditor.value : (currentMermaid || '');
+  if (!text) { showToast('Nothing to copy yet'); return; }
+  const ok = await copyText(text);
+  showToast(ok ? 'Mermaid source copied' : 'Copy failed — select the text and copy manually');
+});
+
+// ── Add component ────────────────────────────────────────────────────────
+// Parses existing node IDs out of the current Mermaid source (best-effort — this is a
+// UI convenience for populating the "connect to" list, not a real Mermaid parser) so
+// William can wire a manually-added component (e.g. a VIS appliance) into the diagram
+// without re-running the wizard.
+
+let lastConnectionNodeIds = [];
+
+function parseMermaidNodes(source) {
+  // Matches wizard-generated node definitions like: ID["label"], ID(["label"]),
+  // ID(("label")), ID{{"label"}}, ID[["label"]] — but not subgraph/class/style/edge
+  // lines, since those never have a bracket character immediately after the ID token.
+  const nodeRe = /^\s*([A-Za-z_]\w*)\s*[[({]+\s*"([^"]*)"/;
+  const seen = new Map();
+  for (const line of source.split('\n')) {
+    const m = line.match(nodeRe);
+    if (!m) continue;
+    const [, id, rawLabel] = m;
+    const shortLabel = rawLabel.split('\\n')[0].trim() || id;
+    seen.set(id, shortLabel);
+  }
+  return Array.from(seen, ([id, label]) => ({ id, label }));
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function refreshConnectionsList(source) {
+  const nodes = parseMermaidNodes(source || '');
+  const ids = nodes.map(n => n.id);
+  const unchanged = ids.length === lastConnectionNodeIds.length &&
+    ids.every((id, i) => id === lastConnectionNodeIds[i]);
+  if (unchanged) return; // avoid wiping the user's in-progress checkbox picks on every keystroke
+
+  lastConnectionNodeIds = ids;
+  if (nodes.length === 0) {
+    connectionsList.innerHTML = '<span class="empty-hint">No connectable components found.</span>';
+    return;
+  }
+  connectionsList.innerHTML = nodes.map(n =>
+    `<label><input type="checkbox" value="${escapeHtml(n.id)}"> ${escapeHtml(n.id)} — ${escapeHtml(n.label)}</label>`
+  ).join('');
+}
+
+function sanitizeMermaidLabelPart(s) {
+  // Mirrors lib/generateNetworkDiagram.js's sanitizeLabel — strips characters that
+  // break Mermaid node-label syntax or enable HTML injection.
+  return String(s || '').replace(/["[\]<>]/g, '').replace(/[\n\r]/g, ' ').trim().slice(0, 80);
+}
+
+const COMPONENT_SHAPES = {
+  router:    { open: '(["', close: '"])' },  // stadium — matches WAN/REMOTE convention
+  switch:    { open: '{{"', close: '"}}' },  // hexagon
+  server:    { open: '["',  close: '"]'  },  // rectangle — matches ESXi/DC/VCSA convention
+  vm:        { open: '("',  close: '")'  },  // rounded rectangle
+  appliance: { open: '[["', close: '"]]' }   // subroutine shape
+};
+const COMPONENT_TYPE_LABELS = { router: 'Router', switch: 'Switch', server: 'Server', vm: 'VM', appliance: 'Appliance' };
+
+function nextCustomId(source) {
+  const re = /\bCUSTOM(\d+)\b/g;
+  let max = 0, m;
+  while ((m = re.exec(source))) max = Math.max(max, parseInt(m[1], 10));
+  return 'CUSTOM' + (max + 1);
+}
+
+document.getElementById('btn-add-component-submit').addEventListener('click', () => {
+  const nameRaw = document.getElementById('comp-name').value.trim();
+  if (!nameRaw) { showToast('Enter a name for the component'); return; }
+  const ipRaw = document.getElementById('comp-ip').value.trim();
+  const type  = document.getElementById('comp-type').value;
+  const shape = COMPONENT_SHAPES[type] || COMPONENT_SHAPES.appliance;
+  const typeLabel = COMPONENT_TYPE_LABELS[type] || 'Appliance';
+
+  const name = sanitizeMermaidLabelPart(nameRaw);
+  const ip   = sanitizeMermaidLabelPart(ipRaw);
+  const labelParts = [name, typeLabel];
+  if (ip) labelParts.push(ip);
+  const label = labelParts.join('\\n');
+
+  const checkedIds = Array.from(connectionsList.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+
+  const source = mermaidEditor.value || currentMermaid || 'graph TD\n';
+  const id = nextCustomId(source);
+
+  const addedLines = [];
+  if (!/classDef\s+custom\b/.test(source)) {
+    addedLines.push('classDef custom fill:#fff7ed,stroke:#c2410c,color:#7c2d12,stroke-width:2px,stroke-dasharray: 3 2');
+  }
+  addedLines.push(`    ${id}${shape.open}${label}${shape.close}`);
+  addedLines.push(`    class ${id} custom`);
+  for (const targetId of checkedIds) {
+    addedLines.push(`    ${id} --- ${targetId}`);
+  }
+
+  const newSource = source.replace(/\s*$/, '') + '\n\n' + addedLines.join('\n') + '\n';
+
+  mermaidEditor.value = newSource;
+  editorSynced = true;
+  setDirty(true);
+  editPanel.classList.add('open');
+  document.getElementById('btn-toggle-edit').classList.add('active');
+  renderFromEditor(newSource);
+
+  document.getElementById('comp-name').value = '';
+  document.getElementById('comp-ip').value = '';
+  showToast(`Added "${name}" — remember to Save changes to keep it`);
+});
+</script>
+</body>
+</html>

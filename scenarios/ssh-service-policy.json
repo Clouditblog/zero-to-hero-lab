@@ -1,0 +1,46 @@
+{
+  "id": "ssh-service-policy",
+  "name": "SSH Service Policy Wrong",
+  "description": "SSH is disabled on all ESXi hosts after a security hardening script changed the service startup policy",
+  "difficulty": "easy",
+  "examObjectives": [
+    "VCP-DCV"
+  ],
+  "topics": [
+    "security"
+  ],
+  "customerScenario": "Hey, this is the ops team. We can't SSH into any of the ESXi hosts in the cluster. This started yesterday after the security team ran a hardening script overnight. The hosts are still reachable through vCenter and the VMs are running \u2014 we just can't get a shell on any host.",
+  "customerFollowUp": "The security team said they followed the VMware Security Hardening Guide. They specifically mentioned they 'ensured SSH was not running by default'. The problem is our lab procedures require SSH access for maintenance tasks.",
+  "snapshotName": "",
+  "verifyScript": "verify-ssh-service-policy.ps1",
+  "fixSteps": [
+    "In vCenter, select a host > Configure > System > Services",
+    "Find the SSH (TSM-SSH) service \u2014 note its current state (Stopped) and startup policy",
+    "Right-click SSH > Edit Startup Policy > select 'Start and stop with host'",
+    "Right-click SSH > Start",
+    "Repeat for all affected hosts, or use PowerCLI: Get-VMHost | Get-VMHostService | Where-Object {$_.Key -eq 'TSM-SSH'} | Set-VMHostService -Policy 'On' -Confirm:$false",
+    "Then start the service: Get-VMHost | Get-VMHostService | Where-Object {$_.Key -eq 'TSM-SSH'} | Start-VMHostService -Confirm:$false",
+    "Verify: ssh root@<esxi-host-ip>"
+  ],
+  "hints": [
+    "SSH stopped working after a security hardening script ran. Security hardening scripts routinely change service startup policies to prevent certain services from running automatically. What service handles SSH on ESXi and where can you check its status?",
+    "In vCenter, each host has a Services section under Configure > System > Services. Look for the SSH (TSM-SSH) service. Is it listed as Stopped? What is its startup policy \u2014 is it set to a value that prevents automatic start?",
+    "The SSH service is stopped and its startup policy prevents it from starting automatically. The two things that need to be fixed: (1) the startup policy, and (2) the running state of the service. These are separate settings.",
+    "The startup policy was changed to 'Start and stop manually' or similar, meaning SSH no longer starts on boot. You need to change the policy back to 'Start and stop with host' (auto-start) and then explicitly start the service.",
+    "In vCenter: Host > Configure > System > Services > SSH > Edit Startup Policy > 'Start and stop with host' > OK, then right-click SSH > Start. Or via PowerCLI for all hosts at once: Get-VMHost | Get-VMHostService | Where {$_.Key -eq 'TSM-SSH'} | Set-VMHostService -Policy 'On'; Start-VMHostService"
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin"
+  ],
+  "learningObjectives": [
+    "Identify the TSM-SSH service startup policy on ESXi hosts via vCenter",
+    "Distinguish between a service's running state and its persistent startup policy",
+    "Re-enable SSH by correcting the startup policy and starting the service via vCenter or PowerCLI",
+    "Understand the security trade-off between disabling SSH by default and operational access requirements"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-26",
+  "labRequirements": [
+    "nested-cluster-min-1"
+  ]
+}

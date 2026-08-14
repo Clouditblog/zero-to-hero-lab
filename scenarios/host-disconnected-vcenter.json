@@ -1,0 +1,47 @@
+{
+  "id": "host-disconnected-vcenter",
+  "name": "ESXi Host Disconnected from vCenter",
+  "description": "A nested ESXi host shows as disconnected in vCenter. Root cause is DNS resolution failing for the host FQDN.",
+  "difficulty": "easy",
+  "examObjectives": [
+    "VCP-DCV Section 2"
+  ],
+  "topics": [
+    "vSphere",
+    "DNS",
+    "Networking"
+  ],
+  "customerScenario": "We've got a warning in vCenter saying one of our hosts is disconnected. The VMs on it seem to still be running but we can't manage it through vCenter. What's going on?",
+  "customerFollowUp": "We did make some changes to our DNS server earlier this week. Could that be related?",
+  "snapshotName": "",
+  "verifyScript": "verify-host-disconnected.ps1",
+  "fixSteps": [
+    "Check DNS A record for host FQDN",
+    "Check DNS PTR record for host IP",
+    "Correct missing or wrong records",
+    "Reconnect host in vCenter"
+  ],
+  "hints": [
+    "Start by trying to reconnect the host in vCenter. Does it succeed or fail with an error message?",
+    "Check whether you can ping the host by IP address and by FQDN from the vCenter server. Is there a difference?",
+    "Try resolving the host's FQDN from the vCenter server using nslookup or Resolve-DnsName. Does it return the correct IP?",
+    "Check the DNS server for the host's A record and PTR record. One or both may be missing or pointing to the wrong IP after the DNS changes.",
+    "Add or correct the A record and PTR record for the host in DNS. Then right-click the host in vCenter and select Connect. It should reconnect successfully."
+  ],
+  "labRequirements": [
+    "nested-cluster",
+    "vcenter",
+    "domain-controller"
+  ],
+  "certRelevance": [
+    "VCP-VVF-Admin"
+  ],
+  "learningObjectives": [
+    "Correlate a vCenter host disconnection with DNS misconfiguration",
+    "Test ESXi host forward and reverse DNS resolution from vCenter",
+    "Correct missing or incorrect A and PTR records on a DNS server",
+    "Reconnect a disconnected ESXi host in vCenter after DNS is repaired"
+  ],
+  "author": "Jon \u2014 CloudITBlog.com",
+  "created": "2026-06-26"
+}

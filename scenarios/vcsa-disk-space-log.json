@@ -1,0 +1,51 @@
+{
+  "id": "vcsa-disk-space-log",
+  "name": "vCenter Log Partition Full",
+  "description": "The VCSA log partition has filled to capacity, causing vCenter health check warnings and intermittent service errors when components attempt to write logs.",
+  "difficulty": "easy",
+  "examObjectives": [
+    "2V0-18.25"
+  ],
+  "topics": [
+    "vcenter",
+    "vcsa",
+    "storage",
+    "health"
+  ],
+  "customerScenario": "Hi, we're getting a yellow warning in vCenter Health Status saying something about disk space. vCenter is still working but some tasks are failing with a weird error about writing to disk. We're not sure where to even look for this — we've never had to dig into vCenter itself before.",
+  "customerFollowUp": "We haven't done any housekeeping on vCenter since we deployed it about a year ago. Our vCenter is running as an appliance and we mostly just use the vSphere Client — we've never logged into the appliance management interface.",
+  "snapshotName": "",
+  "verifyScript": "verify-vcsa-disk-space-log.ps1",
+  "fixSteps": [
+    "Log in to the VCSA management interface (VAMI) at https://<vcenter-fqdn>:5480",
+    "Navigate to Monitor > Disk and review partition usage percentages",
+    "Confirm the /storage/log partition is at or near 100%",
+    "SSH to vCenter and run 'shell' (then type 'shell' again at the appliancesh prompt to reach bash)",
+    "Run: du -sh /var/log/vmware/* | sort -rh | head -20 to identify the largest log directories",
+    "Clear stale rotated log archives: find /var/log/vmware -name '*.log.*' -mtime +30 -delete",
+    "Check partition usage again in VAMI — confirm it drops below 80%",
+    "Verify the health check warning clears in vSphere Client under Home > vCenter Health"
+  ],
+  "hints": [
+    "A vCenter health warning about disk space means one of the VCSA internal partitions is running out of room. vCenter is a Linux appliance with its own disk layout. Which dedicated interface lets you inspect the appliance's health and partition usage — and on which port does it listen?",
+    "The VCSA Management Interface (VAMI) runs at port 5480. Log in with your administrator credentials and check Monitor > Disk. The /storage/log partition holds vCenter service logs and is the most common culprit on long-running deployments.",
+    "The /storage/log partition fills up over time on environments that have never been maintained. You need to access the appliance shell to find and remove the largest consumers. SSH to vCenter and type 'shell' at the appliancesh prompt to reach bash.",
+    "Once in the bash shell, run: du -sh /var/log/vmware/* | sort -rh | head -20. Old rotated log archives (files named .log.1, .log.2, or .gz files) older than 30 days are safe to delete. The active .log file should not be deleted.",
+    "Run: find /var/log/vmware -name '*.log.*' -mtime +30 -delete to remove log archives older than 30 days. Check VAMI Monitor > Disk to confirm partition usage drops, then verify the vSphere Client health warning clears under Home > vCenter Health."
+  ],
+  "labRequirements": [
+    "vcenter"
+  ],
+  "certRelevance": [
+    "VCP-VVF-Support",
+    "VCP-VVF-Admin"
+  ],
+  "learningObjectives": [
+    "Use VAMI (port 5480) to inspect VCSA partition health and identify a full disk",
+    "Access the VCSA appliance shell via SSH to investigate log directory sizes",
+    "Safely remove stale rotated log archives without touching active log files",
+    "Verify the health warning clears in vSphere Client after remediation"
+  ],
+  "author": "Zero to Hero Lab starter library",
+  "created": "2026-06-29"
+}
