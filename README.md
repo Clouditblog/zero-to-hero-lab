@@ -165,7 +165,7 @@ C:\Lab\                 (Windows) — or ~/Lab/ on macOS/Linux
 ## Running the wizard
 
 ```
-git clone https://github.com/redeye365/zero-to-hero-lab.git
+git clone https://github.com/Clouditblog/zero-to-hero-lab.git
 cd zero-to-hero-lab
 npm install
 npm start
@@ -294,7 +294,7 @@ Non-commercial community license — see [LICENSE](LICENSE) for the full terms.
   for paid consulting/training, or white-labelling it — **requires written permission**
   from the author. Contact [CloudITBlog.com](https://CloudITBlog.com) to request it.
 - **Attribution required**: credit CloudITBlog.com and link back to
-  [the original repository](https://github.com/redeye365/zero-to-hero-lab) in any use
+  [the original repository](https://github.com/Clouditblog/zero-to-hero-lab) in any use
   or redistribution.
 - **Forks**: welcome for personal/non-commercial use (attribution preserved); forks for
   commercial use are prohibited without permission.

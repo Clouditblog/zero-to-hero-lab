@@ -1,6 +1,6 @@
 # vsphere-lab-scenarios
 
-Community-contributed scenario library for [zero-to-hero-lab](https://github.com/redeye365/zero-to-hero-lab).
+Community-contributed scenario library for [zero-to-hero-lab](https://github.com/Clouditblog/zero-to-hero-lab).
 
 Each scenario is a pre-built lab fault that a vSphere engineer must diagnose and fix. When loaded via the Admin panel the lab automatically reverts to a saved vCenter snapshot — the troubleshooter sees only a support ticket, investigates the live environment, and fixes it for real. No walkthroughs, no safety net.
 
